@@ -1,5 +1,5 @@
 # Set your Azure DevOps org and project
-$organization = "https://dev.azure.com/MedtronicBI/"
+$organization = "https://dev.azure.com/MedtronicBI"
 $project = "DigIC GR AI"
 
 # Login (uses cached credentials, or set a PAT env var)
