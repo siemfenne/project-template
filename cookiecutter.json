@@ -1,6 +1,6 @@
 {
-    "project_name": "Example Project",
-    "repo_name": "example_repo",
+    "project_name": "Project Name",
+    "repo_name": "Repository Name",
     "author_name": "Your Name or Organization",
     "description": "A short description of the project.",
     "environment_manager": [
