@@ -1,0 +1,20 @@
+{
+    "project_name": "Example Project",
+    "repo_name": "example_repo",
+    "author_name": "Your Name or Organization",
+    "description": "A short description of the project.",
+    "environment_manager": [
+      "virtualenv",
+      "conda",
+      "pipenv",
+      "uv",
+      "none"
+    ],
+    "dependency_file": [
+      "requirements.txt",
+      "pyproject.toml",
+      "environment.yml",
+      "Pipfile"
+    ]
+  }
+  
