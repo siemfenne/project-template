@@ -1,11 +1,7 @@
-.PHONY: help git-init git-remote branches feature-branch
+.PHONY: setup-all git-init git-remote branches feature-branch
 
-help:
-	@echo "Usage:"
-	@echo "  make git-init      # Initialize git and make initial commit"
-	@echo "  make git-remote    # Set up remote (needs REPO_URL, see instructions)"
-	@echo "  make branches      # Create dev and stage branches"
-	@echo "  make feature-branch NAME=<desc> # Create feature branch from dev"
+setup-all: git-init git-remote branches
+	@echo "Setup complete! You can now create feature branches as needed."
 
 git-init:
 	git init
@@ -15,19 +11,25 @@ git-init:
 
 git-remote:
 	@if [ -z "$$REPO_URL" ]; then \
-		read -p "Enter Azure DevOps repository URL: " REPO_URL; \
-		git remote add origin $$REPO_URL; \
+		read -p "Enter Azure DevOps repository URL (from Clone button): " REPO_URL; \
+	fi; \
+	if git remote | grep -q origin; then \
+		git remote set-url origin $$REPO_URL; \
 	else \
 		git remote add origin $$REPO_URL; \
-	fi
+	fi; \
 	git push -u origin main
 
 branches:
-	git checkout -b stage
-	git push -u origin stage
-	git checkout main
-	git checkout -b dev
-	git push -u origin dev
+	if ! git show-ref --quiet refs/heads/stage; then \
+		git checkout -b stage; \
+		git push -u origin stage; \
+	fi; \
+	git checkout main; \
+	if ! git show-ref --quiet refs/heads/dev; then \
+		git checkout -b dev; \
+		git push -u origin dev; \
+	fi; \
 	git checkout main
 
 feature-branch:
