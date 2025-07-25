@@ -11,8 +11,11 @@ $repo_name = Read-Host "Enter new repository name"
 # Create the new repository in Azure DevOps
 az repos create --name $repo_name
 
-# Get the remote URL
-$remote_url = "$organization/$project/_git/$repo_name"
+# URL encode the project name (replace spaces with %20)
+$remote_project = $project -replace ' ', '%20'
+
+# Build the correct remote URL
+$remote_url = "$organization/$remote_project/_git/$repo_name"
 
 # Initialize local git and first commit
 git init
