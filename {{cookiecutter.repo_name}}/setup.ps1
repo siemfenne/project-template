@@ -52,18 +52,30 @@ if ($setupSnowflake -eq "y") {
     $unsecurePass = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($passphrase))
     $env:PRIVATE_KEY_PASSPHRASE = $unsecurePass
 
-    # Build your SQL command
     $sf_cmd = @"
-CREATE OR REPLACE GIT REPOSITORY $repo_name
+CREATE GIT REPOSITORY IF NOT EXISTS $repo_name
   ORIGIN = '$remote_url'
   API_INTEGRATION = API_GR_GIT_AZURE_DEVOPS
   GIT_CREDENTIALS = EMEA_UTILITY_DB.SECRETS.SECRET_GR_GIT_AZURE_DEVOPS;
 "@
 
-    # Run the SQL using the configured connection
+    Write-Host "Creating Git repository object in Snowflake..."
     snow sql -c service_principal -q $sf_cmd
 
-    # Clear env var
+    $databases = @("PROD_GR_AI_DB", "STAGE_GR_AI_DB", "DEV_GR_AI_DB")
+    $role = "GR_AI_ENGINEER"
+
+    Write-Host "Creating schemas and assigning grants in each environment database..."
+    foreach ($db in $databases) {
+        $sql = @"
+USE DATABASE $db;
+CREATE SCHEMA IF NOT EXISTS $repo_name;
+GRANT ALL PRIVILEGES ON SCHEMA $repo_name TO ROLE $role;
+"@
+        Write-Host "Initializing schema and grants in $db..."
+        snow sql -c service_principal -q $sql
+    }
+
     Remove-Item Env:PRIVATE_KEY_PASSPHRASE
 }
 
