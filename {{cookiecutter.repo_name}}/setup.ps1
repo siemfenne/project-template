@@ -80,8 +80,35 @@ GRANT ALL PRIVILEGES ON SCHEMA $repo_name TO ROLE $role;
 }
 
 if ($setupDatabricks -eq "y") {
-    $dbx_path = Read-Host "Databricks workspace path for the repo (e.g. /Repos/your.email@domain.com/$repo_name)"
-    databricks repos create --url $remote_url --provider azureDevOpsServices --path $dbx_path
+
+    $user_name = Read-Host "Enter your Medtronic username (e.g., fennes2 for Siem Fenne)"
+    $dbx_email = "$user_name@medtronic.com"
+    $dbx_path = "/Workspace/Users/$dbx_email/$repo_name"
+
+    # List of environments and their respective Databricks profiles and URLs
+    $dbx_envs = @(
+        @{ Name = "PROD"; Profile = "prod"; URL = "https://medtronic-ml-globalregionsit-prod.cloud.databricks.com" },
+        @{ Name = "STAGE"; Profile = "stage"; URL = "https://medtronic-ml-globalregionsit-stage.cloud.databricks.com" },
+        @{ Name = "DEV"; Profile = "dev"; URL = "https://medtronic-ml-globalregionsit-dev.cloud.databricks.com" }
+    )
+
+    foreach ($env in $dbx_envs) {
+        Write-Host "Linking repo in Databricks $($env.Name) environment..."
+
+        # Try to create the repo
+        try {
+            databricks --profile $($env.Profile) repos create $remote_url azureDevOpsServices --path $dbx_path
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Successfully linked to Databricks $($env.Name) at $dbx_path"
+            } else {
+                Write-Host "Could not create repo in Databricks $($env.Name). It may already exist or there was an error."
+            }
+        } catch {
+            Write-Host "Exception occurred creating Databricks repo in $($env.Name): $_"
+        }
+    }
+
+    Write-Host "Databricks integration complete."
 }
 
 Write-Host "All done! Project ready, and integrations completed if chosen."
