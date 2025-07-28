@@ -84,8 +84,29 @@ GRANT ALL PRIVILEGES ON SCHEMA $repo_name TO ROLE $role;
 fi
 
 if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
-    read -p "Databricks workspace path for the repo (e.g. /Repos/your.email@domain.com/$repo_name): " dbx_path
-    databricks repos create --url "$remote_url" --provider azureDevOpsServices --path "$dbx_path"
+    read -p "Enter your Medtronic username (e.g. fennes2 for Siem Fenne): " user_name
+    dbx_email="$user_name@medtronic.com"
+    dbx_path="/Workspace/Users/$dbx_email/$repo_name"
+
+    declare -A dbx_envs
+    dbx_envs[PROD]=prod
+    dbx_envs[STAGE]=stage
+    dbx_envs[DEV]=dev
+
+    for env in PROD STAGE DEV; do
+        profile="${dbx_envs[$env]}"
+        echo "Linking repo in Databricks $env environment with CLI profile '$profile'..."
+
+        # Try to create the repo, catch and display errors if any
+        if databricks --profile "$profile" repos create "$remote_url" azureDevOpsServices --path "$dbx_path"; then
+            echo "Successfully linked to Databricks $env at $dbx_path"
+        else
+            echo "Could not create repo in Databricks $env. It may already exist or there was an error."
+        fi
+    done
+
+    echo "Databricks integration complete."
 fi
+
 
 echo "All done! Project ready, and integrations completed if chosen."

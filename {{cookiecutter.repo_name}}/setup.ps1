@@ -112,5 +112,3 @@ if ($setupDatabricks -eq "y") {
 }
 
 Write-Host "All done! Project ready, and integrations completed if chosen."
-
-
