@@ -42,3 +42,36 @@ if (-not (git branch --list dev)) {
 git checkout main
 
 Write-Host "Setup complete! Repo '$repo_name' created in Azure DevOps, branches ready."
+
+$setupSnowflake = Read-Host "Do you want to link this repo in Snowflake? (y/n)"
+$setupDatabricks = Read-Host "Do you want to link this repo in Databricks? (y/n)"
+
+if ($setupSnowflake -eq "y") {
+    # Prompt for Snowflake passphrase (set env var for this session)
+    $passphrase = Read-Host -AsSecureString "Enter private key passphrase"
+    $unsecurePass = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($passphrase))
+    $env:PRIVATE_KEY_PASSPHRASE = $unsecurePass
+
+    # Build your SQL command
+    $sf_cmd = @"
+CREATE OR REPLACE GIT REPOSITORY $repo_name
+  ORIGIN = '$remote_url'
+  API_INTEGRATION = API_GR_GIT_AZURE_DEVOPS
+  GIT_CREDENTIALS = EMEA_UTILITY_DB.SECRETS.SECRET_GR_GIT_AZURE_DEVOPS;
+"@
+
+    # Run the SQL using the configured connection
+    snow sql -c service_principal -q $sf_cmd
+
+    # Clear env var
+    Remove-Item Env:PRIVATE_KEY_PASSPHRASE
+}
+
+if ($setupDatabricks -eq "y") {
+    $dbx_path = Read-Host "Databricks workspace path for the repo (e.g. /Repos/your.email@domain.com/$repo_name)"
+    databricks repos create --url $remote_url --provider azureDevOpsServices --path $dbx_path
+}
+
+Write-Host "All done! Project ready, and integrations completed if chosen."
+
+
