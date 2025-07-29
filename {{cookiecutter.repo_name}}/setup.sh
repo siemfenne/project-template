@@ -108,5 +108,4 @@ if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
     echo "Databricks integration complete."
 fi
 
-
 echo "All done! Project ready, and integrations completed if chosen."
