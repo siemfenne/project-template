@@ -1,0 +1,41 @@
+import os
+
+deploy_lines = []
+output_path = os.path.join(os.path.dirname(__file__), 'deploy.sql')
+
+database = os.environ['DEPLOY_DB']
+schema = os.environ['DEPLOY_SCHEMA']
+repo_name = os.environ['REPO_NAME']
+branch = os.environ['BUILD_SOURCEBRANCHNAME']
+warehouse = os.environ['WAREHOUSE']
+utility_db = os.environ['UTILITY_DB']
+git_schema = os.environ['GIT_SCHEMA']
+
+# Add USE DATABASE and USE SCHEMA at the top
+deploy_lines.append(f"USE DATABASE {database};\n")
+deploy_lines.append(f"USE SCHEMA {schema};\n\n")
+
+# Rest of your notebook deployment
+for root, dirs, files in os.walk('..'):
+    for file in files:
+        if file.endswith('.ipynb'):
+            file_without_ext = os.path.splitext(file)[0]
+            relative_path = os.path.relpath(root, '.')
+            full_repo_path = f'@"{utility_db}"."{git_schema}"."{repo_name}"/branches/{branch}/{relative_path}/'
+            deploy_lines.append(f"""
+CREATE OR REPLACE NOTEBOOK IDENTIFIER('"{database}"."{schema}"."{file_without_ext}"')
+FROM {full_repo_path}
+WAREHOUSE = '{warehouse}'
+QUERY_WAREHOUSE = '{warehouse}'
+RUNTIME_NAME = 'SYSTEM$WAREHOUSE_RUNTIME'
+MAIN_FILE = '{file}'
+;
+""")
+
+with open(output_path, 'w') as f:
+    f.writelines(deploy_lines)
+
+print("Generated SQL:")
+with open(output_path, 'r') as f:
+    print(f.read())
+
