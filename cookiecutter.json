@@ -3,6 +3,11 @@
     "repo_name": "Repository Name",
     "author_name": "Your Name or Organization",
     "description": "A short description of the project.",
+    "project_platform": [
+      "Snowflake",
+      "Databricks",
+      "Both"
+    ],
     "environment_manager": [
       "virtualenv",
       "conda",
