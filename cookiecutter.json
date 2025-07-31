@@ -5,8 +5,7 @@
     "description": "A short description of the project.",
     "project_platform": [
       "Snowflake",
-      "Databricks",
-      "Both"
+      "Databricks"
     ],
     "environment_manager": [
       "virtualenv",
