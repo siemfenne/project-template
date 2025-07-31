@@ -149,7 +149,7 @@ The included `azure-pipeline.yml` provides:
 - **Connection testing** for both temporary and named connections
 - **Notebook structure validation**
 
-## 📝 Best Practices
+## Best Practices
 
 ### Data Management
 - Store raw data in `data/raw/` (immutable)
