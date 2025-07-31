@@ -2,13 +2,10 @@
 
 A standardized cookiecutter template for Data Science projects at Medtronic, designed to enforce best practices and provide a consistent project structure across teams.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Python 3.7+ installed
-- Cookiecutter installed (`pip install cookiecutter`)
-- Azure CLI installed and configured (for automatic repository creation)
-- Git installed
+- Cookiecutter installed (`pip install cookiecutter==2.6.0`)
 
 ### Generate a New Project
 
@@ -22,20 +19,20 @@ You'll be prompted to answer several questions that customize your project:
 
 | Prompt | Description | Options |
 |--------|-------------|---------|
-| `project_name` | Human-readable project name | Free text (e.g., "Customer Analytics Pipeline") |
-| `repo_name` | Repository/folder name | Free text (e.g., "customer-analytics-pipeline") |
-| `author_name` | Author or organization name | Free text (e.g., "Data Science Team") |
+| `project_name` | Human-readable project name | Free text (e.g., "Yoda - Recommended Opportunity") |
+| `repo_name` | Repository/folder name | Free text (e.g., "PXXX") |
+| `author_name` | Author or organization name | Free text (e.g., "Medtronic") |
 | `description` | Brief project description | Free text |
 | `project_platform` | Target platform for deployment | `Snowflake` or `Databricks` |
 | `environment_manager` | Python environment management tool | `virtualenv`, `conda`, `pipenv`, `uv`, `none` |
 | `dependency_file` | Dependency specification format | `requirements.txt`, `pyproject.toml`, `environment.yml`, `Pipfile` |
 
-## 📁 Project Structure
+## Project Structure
 
 The generated project follows data science best practices with clear separation of concerns:
 
 ```
-your-project/
+repo_name/
 ├── data/                          # Data storage (git-ignored)
 │   ├── external/                  # External data sources
 │   ├── interim/                   # Intermediate processed data
@@ -73,12 +70,12 @@ your-project/
 │   └── deploy_sql.py            # Python deployment utilities
 └── streamlit/                   # Streamlit app directory
     ├── streamlit_app.py         # Main Streamlit application
-    └── requirements.txt         # Streamlit dependencies
+    └── environment.yml         # Streamlit dependencies
 ```
 
 #### When `project_platform = "Databricks"`:
 ```
-└── databricks.yml               # Databricks project configuration
+└── databricks.yml               # Databricks project configuration for pipeline
 ```
 
 ### Dependency Management Files
@@ -90,7 +87,7 @@ Based on your `dependency_file` choice, one of the following will be created in 
 - **environment.yml**: Conda environment specification
 - **Pipfile**: Pipenv dependency management
 
-## 🛠️ Getting Started with Your New Project
+## Getting Started with Your New Project
 
 After generating your project:
 
@@ -122,31 +119,7 @@ This will:
 - Create and push `main`, `stage`, and `dev` branches
 - Set up remote origin
 
-### 3. Environment Setup
-
-Depending on your chosen environment manager:
-
-**UV (Recommended):**
-```bash
-make env-uv
-```
-
-**Conda:**
-```bash
-make env-conda
-```
-
-**Virtualenv:**
-```bash
-make env-venv
-```
-
-**Pipenv:**
-```bash
-make env-pipenv
-```
-
-### 4. Available Make Commands
+### 3. Available Make Commands
 
 | Command | Description |
 |---------|-------------|
@@ -157,7 +130,7 @@ make env-pipenv
 | `make databricks` | Databricks-specific setup |
 | `make feature-branch` | Create a new feature branch |
 
-## 🔀 Branching Strategy
+## Branching Strategy
 
 This template implements a Git branching strategy aligned with the team's deployment pipeline:
 
@@ -166,7 +139,7 @@ This template implements a Git branching strategy aligned with the team's deploy
 - **`dev`** - Development branch → `DEV_GR_AI_DB`
 - **`feature/*`** - Feature branches → `DEV_GR_AI_DB`
 
-## 🚦 CI/CD Pipeline
+## CI/CD Pipeline
 
 The included `azure-pipeline.yml` provides:
 
@@ -175,15 +148,6 @@ The included `azure-pipeline.yml` provides:
 - **Snowflake CLI authentication** via JWT (private key)
 - **Connection testing** for both temporary and named connections
 - **Notebook structure validation**
-
-### Required Azure DevOps Secrets
-
-Ensure these secrets are configured in your Azure DevOps project:
-
-- `SNOWFLAKE_ACCOUNT`
-- `SNOWFLAKE_USER`  
-- `SNOWFLAKE_PRIVATE_KEY_RAW`
-- `SNOWFLAKE_PASSPHRASE` (optional if key is encrypted)
 
 ## 📝 Best Practices
 
@@ -206,15 +170,3 @@ Ensure these secrets are configured in your Azure DevOps project:
 - Follow the branching strategy
 - Use meaningful commit messages
 - Create pull requests for code reviews
-
-## 🤝 Support
-
-For questions or issues with this template:
-
-1. Check the existing documentation in `docs/`
-2. Review the Makefile for available commands
-3. Contact the DevOps team for template updates
-
----
-
-*This template is part of the Data Science development maturity initiative to standardize project structures and deployment practices across Medtronic Data Science teams.*
