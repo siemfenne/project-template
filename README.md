@@ -91,7 +91,7 @@ Based on your `dependency_file` choice, one of the following will be created in 
 
 After generating your project:
 
-### 1. Initial Setup
+### 1. Setup Scripts (Recommended)
 
 Navigate to your project directory and run the appropriate setup script:
 
@@ -105,9 +105,24 @@ Navigate to your project directory and run the appropriate setup script:
 ./setup.sh
 ```
 
-### 2. Initialize Repository (Optional)
+This will:
+- Configure Azure DevOps CLI with organization and project defaults
+- Prompt for new repository name
+- Create new Azure DevOps repository
+- Initialize local git repository with initial commit
+- Create and push `main`, `stage`, and `dev` branches
+- Set up remote origin
+- Optionally link repository in Snowflake:
+  - Create git repository object with Azure DevOps integration
+  - Create project schema in PROD_GR_AI_DB, STAGE_GR_AI_DB, and DEV_GR_AI_DB
+  - Grant appropriate permissions to GR_AI_ENGINEER role
+- Optionally link repository in Databricks:
+  - Create repository links in all three environments (PROD, STAGE, DEV)
+  - Set up workspace paths under user directory
 
-Use the Makefile to automatically create an Azure DevOps repository and set up branching:
+### 2. Using Makefile (Alternative)
+
+Alternatively, use the Makefile to automatically create an Azure DevOps repository and set up branching:
 
 ```bash
 make init-repo
