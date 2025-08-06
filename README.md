@@ -120,6 +120,8 @@ This will:
   - Create repository links in all three environments (PROD, STAGE, DEV)
   - Set up workspace paths under user directory
 
+**Important**: When you choose to link the repository to Snowflake, you will be prompted to provide a private key passphrase. Here you have to insert the passphrase of the Service Principal. Please ask Ronald to pass it to you.
+
 ### 2. Using Makefile (Alternative)
 
 Alternatively, use the Makefile to automatically create an Azure DevOps repository and set up branching:
