@@ -1,0 +1,5 @@
+name: {{cookiecutter.repo_name}}
+channels:
+  - snowflake
+dependencies:
+  - python={{cookiecutter.python_version}}

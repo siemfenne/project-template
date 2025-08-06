@@ -7,6 +7,7 @@
       "Snowflake",
       "Databricks"
     ],
+    "python_version": "Python version",
     "environment_manager": [
       "virtualenv",
       "conda",
