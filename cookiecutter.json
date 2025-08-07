@@ -12,6 +12,7 @@
       "virtualenv",
       "conda",
       "pipenv",
+      "poetry",
       "uv",
       "none"
     ],
