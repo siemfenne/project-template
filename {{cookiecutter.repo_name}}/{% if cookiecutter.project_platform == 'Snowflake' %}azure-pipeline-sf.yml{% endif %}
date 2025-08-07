@@ -1,0 +1,86 @@
+trigger:
+  branches:
+    include:
+      - main
+      - stage
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  SNOWFLAKE_CONFIG_PATH: '.snowflake/config.toml'
+  SNOWFLAKE_CONNECTION_NAME: 'myconnection'
+  REPO_NAME: '<REPO_NAME>' #                            <-- change these according to your repo name
+  WAREHOUSE: '<WAREHOUSE>' #                
+  DEV_DB: 'DEV_GR_AI_DB' #                        
+  STAGE_DB: 'STAGE_GR_AI_DB' #                    
+  PROD_DB: 'PROD_GR_AI_DB' #                      
+  SCHEMA: '<SCHEMA_NAME>' #                               <-- change these according to your schema name
+  UTILITY_DB: 'EMEA_UTILITY_DB'
+  GIT_SCHEMA: 'GIT_REPOSITORIES'
+
+steps:
+  - checkout: self
+
+  - script: |
+      chmod 600 .snowflake/config.toml
+    displayName: 'Fix config.toml permissions'
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.10'
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install snowflake-cli
+    displayName: 'Install Snowflake CLI'
+
+  - task: DownloadSecureFile@1
+    name: downloadSnowflakeKey
+    inputs:
+      secureFile: 'SVC-SNF-GIT-GR-AI.p8'
+
+  - script: |
+      cp $(downloadSnowflakeKey.secureFilePath) ./SVC-SNF-GIT-GR-AI.p8
+    displayName: 'Change Snowflake key location'
+
+  - script: |
+      if [ "$(Build.SourceBranchName)" == "main" ]; then
+        echo "##vso[task.setvariable variable=DEPLOY_DB]$(PROD_DB)"
+      elif [ "$(Build.SourceBranchName)" == "stage" ]; then
+        echo "##vso[task.setvariable variable=DEPLOY_DB]$(STAGE_DB)"
+      else
+        echo "##vso[task.setvariable variable=DEPLOY_DB]$(DEV_DB)"
+      fi
+    displayName: 'Set deploy database based on branch'
+
+  # Test connection with Snowflake
+  - script: |
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection myconnection --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
+    displayName: 'Test Snowflake CLI connection'
+    env:
+      PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
+
+  # Fetch repository in Snowflake
+  - script: |
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) git fetch "$(UTILITY_DB).$(GIT_SCHEMA).$(REPO_NAME)" --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
+    displayName: 'Fetch repo in Snowflake'
+    env:
+      PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
+  
+  - script: |
+      python .snowflake/deploy_sql.py
+    displayName: 'Generate and show deploy.sql and deploy_execute.sql'
+    env:
+      DEPLOY_DB: $(DEPLOY_DB)
+      DEPLOY_SCHEMA: $(SCHEMA)
+      REPO_NAME: $(REPO_NAME)
+      BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
+      WAREHOUSE: $(WAREHOUSE)
+
+  - script: |
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection myconnection --warehouse $(WAREHOUSE)
+    displayName: 'Deploy/execute notebooks/streamlits'
+    env:
+      PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
+

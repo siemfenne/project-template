@@ -1,0 +1,47 @@
+trigger:
+  branches:
+    include:
+      - stage
+      - main
+
+pool:
+  name: 'GR_CLOUD'
+
+steps:
+  - checkout: self
+  
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.11'
+
+  - script: |
+      curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+    displayName: 'Install Databricks CLI'
+
+  - script: |
+      # Use the correct bundle target
+      if [ "$(Build.SourceBranchName)" == "stage" ]; then
+        export BUNDLE_TARGET=stage
+      elif [ "$(Build.SourceBranchName)" == "main" ]; then
+        export BUNDLE_TARGET=prod
+      else
+        echo "Not a deployment branch"
+        exit 1
+      fi
+
+      # CLI will use host from databricks.yml target
+      
+      # Make sure the bundle config is valid
+      echo "Target: $BUNDLE_TARGET"
+      databricks bundle validate -t $BUNDLE_TARGET --debug
+      
+      # Deploy with variables from the YAML file
+      # The --var flag is needed to ensure the variables are properly resolved
+      if [ "$BUNDLE_TARGET" == "stage" ]; then
+        databricks bundle deploy -t $BUNDLE_TARGET
+      elif [ "$BUNDLE_TARGET" == "prod" ]; then
+        databricks bundle deploy -t $BUNDLE_TARGET
+      fi
+    displayName: 'Deploy DAB to correct workspace'
+    env:
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)        # Using PAT instead of service principal
