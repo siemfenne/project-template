@@ -24,7 +24,7 @@ You'll be prompted to answer several questions that customize your project:
 | `author_name` | Author or organization name | Free text (e.g., "Medtronic") |
 | `description` | Brief project description | Free text |
 | `project_platform` | Target platform for deployment | `Snowflake` or `Databricks` |
-| `environment_manager` | Python environment management tool | `virtualenv`, `conda`, `pipenv`, `uv`, `none` |
+| `environment_manager` | Python environment management tool | `virtualenv`, `conda`, `pipenv`, `poetry`, `uv`, `none` |
 | `dependency_file` | Dependency specification format | `requirements.txt`, `pyproject.toml`, `environment.yml`, `Pipfile` |
 
 ## Project Structure
