@@ -52,7 +52,6 @@ repo_name/
 │   └── __init__.py               # Makes src a Python module
 ├── .env                          # Environment variables (git-ignored)
 ├── .gitignore                    # Git ignore rules
-├── azure-pipeline.yml            # Azure DevOps CI/CD pipeline
 ├── Makefile                      # Automation commands
 ├── setup.cfg                     # Python package configuration
 ├── setup.ps1                    # Windows setup script
@@ -70,12 +69,14 @@ repo_name/
 │   └── deploy_sql.py            # Python deployment utilities
 └── streamlit/                   # Streamlit app directory
     ├── streamlit_app.py         # Main Streamlit application
-    └── environment.yml         # Streamlit dependencies
+    └── environment.yml          # Streamlit dependencies
+├── azure-pipeline-sf.yml        # Azure DevOps CI/CD pipeline template for Snowflake
 ```
 
 #### When `project_platform = "Databricks"`:
 ```
-└── databricks.yml               # Databricks project configuration for pipeline
+├── databricks.yml               # Databricks project configuration for pipeline
+├── azure-pipeline-dbx.yml       # Azure DevOps CI/CD pipeline template for Databricks
 ```
 
 ### Dependency Management Files
