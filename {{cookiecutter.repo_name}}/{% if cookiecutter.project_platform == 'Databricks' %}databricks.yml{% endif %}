@@ -1,0 +1,133 @@
+bundle:
+  name: <bundle_name>
+
+variables:
+  cluster_id:
+    default: ""
+  database:
+    default: ""
+  schema:
+    default: ""
+
+resources:
+  jobs:
+    exc-data-refresh-job:
+      name: DEVOPSCLOUD_EXC_DATA_REFRESH_JOB
+      tasks:
+        - task_key: data_preparation
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            base_parameters:
+              database: ${var.database}
+              dataset_type: INFER
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+        - task_key: result_sets
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS
+            base_parameters:
+              database: ${var.database}
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+          depends_on:
+            - task_key: data_preparation
+      schedule:
+        quartz_cron_expression: "0 55 5 * * ?"
+        timezone_id: "Europe/Amsterdam"
+        pause_status: UNPAUSED
+
+    exc-model-inference-job:
+      name: DEVOPSCLOUD_EXC_MODEL_INFERENCE_JOB
+      tasks:
+        - task_key: data_preparation
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            base_parameters:
+              database: ${var.database}
+              dataset_type: INFER
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+        - task_key: model_inference
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_03_MODEL_INFERENCE
+            base_parameters:
+              database: ${var.database}
+          existing_cluster_id: ${var.cluster_id}
+          depends_on:
+            - task_key: data_preparation
+        - task_key: result_sets
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS
+            base_parameters:
+              database: ${var.database}
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+          depends_on:
+            - task_key: model_inference
+      schedule:
+        quartz_cron_expression: "0 0 13 ? * 1"
+        timezone_id: "Europe/Amsterdam"
+        pause_status: UNPAUSED
+
+    model-retraining-job:
+      name: DEVOPSCLOUD_EXC_MODEL_RETRAINING_JOB
+      tasks:
+        - task_key: data_preparation_train
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            base_parameters:
+              database: ${var.database}
+              dataset_type: TRAIN
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+        - task_key: model_training
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_02_MODEL_TRAINING
+            base_parameters:
+              database: ${var.database}
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+          depends_on:
+            - task_key: data_preparation_train
+        - task_key: data_preparation_infer
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            base_parameters:
+              database: ${var.database}
+              dataset_type: INFER
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+          depends_on:
+            - task_key: model_training
+      schedule:
+        quartz_cron_expression: "0 0 13 ? * 1"
+        timezone_id: "Europe/Amsterdam"
+        pause_status: UNPAUSED
+
+    database-init-job:
+      name: DEVOPSCLOUD_DATABASE_INIT
+      tasks:
+        - task_key: database_init
+          notebook_task:
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_00_DATABASE_INIT
+            base_parameters:
+              database: ${var.database}
+              schema: ${var.schema}
+          existing_cluster_id: ${var.cluster_id}
+
+targets:
+  stage:
+    workspace:
+      host: "https://medtronic-ml-globalregionsit-stage.cloud.databricks.com/"
+    variables:
+      cluster_id: "<cluster_id>"
+      database: "STAGE_GR_AI_DB"
+      schema: "<schema>"
+
+  prod:
+    workspace:
+      host: "https://medtronic-ml-globalregionsit-prod.cloud.databricks.com/"
+    variables:
+      cluster_id: "<cluster_id>"
+      database: "PROD_GR_AI_DB"
+      schema: "<schema>"
