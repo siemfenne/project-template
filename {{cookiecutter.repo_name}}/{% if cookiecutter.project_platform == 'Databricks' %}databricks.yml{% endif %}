@@ -1,66 +1,64 @@
-bundle:
-  name: <bundle_name>
+bundle: # bundle metadata, defines the overall project (you can use PXYZ for your project)
+  name: <PXYZ>
 
-variables:
-  cluster_id:
+variables: # global variables that can be reused in jobs (overridden per target)
+  cluster_id: # each cluster in databricks has a unique id
     default: ""
-  database:
+  database: 
     default: ""
-  schema:
+  schema: 
     default: ""
 
-resources:
+resources: # databricks resources to be created on deploy (jobs, pipelines, etc.)
   jobs:
-    exc-data-refresh-job:
+    exc-data-refresh-job: # first job to refresh data
       name: DEVOPSCLOUD_EXC_DATA_REFRESH_JOB
-      tasks:
-        - task_key: data_preparation
+      parameters: # job-level parameters (shared across tasks, overridable at runtime). A job can include multiple tasks that for example execute a notebook
+        - name: database
+          default: ${var.database}
+        - name: schema
+          default: ${var.schema}
+      tasks: # individual tasks within the job
+        - task_key: data_preparation # first task: prepares data
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
-            base_parameters:
-              database: ${var.database}
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb # path to notebook in project
+            base_parameters: # task-specific parameters (in addition to job parameters)
               dataset_type: INFER
-              schema: ${var.schema}
           existing_cluster_id: ${var.cluster_id}
-        - task_key: result_sets
+        - task_key: result_sets # second task: generates result sets
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS
-            base_parameters:
-              database: ${var.database}
-              schema: ${var.schema}
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS.ipynb
           existing_cluster_id: ${var.cluster_id}
-          depends_on:
+          depends_on: # runs only after data_preparation finishes
             - task_key: data_preparation
-      schedule:
+      schedule: # cron-based job scheduling
         quartz_cron_expression: "0 55 5 * * ?"
         timezone_id: "Europe/Amsterdam"
         pause_status: UNPAUSED
 
-    exc-model-inference-job:
+    exc-model-inference-job: # job for running model inference
       name: DEVOPSCLOUD_EXC_MODEL_INFERENCE_JOB
+      parameters:
+        - name: database
+          default: ${var.database}
+        - name: schema
+          default: ${var.schema}
       tasks:
         - task_key: data_preparation
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb
             base_parameters:
-              database: ${var.database}
               dataset_type: INFER
-              schema: ${var.schema}
           existing_cluster_id: ${var.cluster_id}
-        - task_key: model_inference
+        - task_key: model_inference # runs model inference
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_03_MODEL_INFERENCE
-            base_parameters:
-              database: ${var.database}
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_03_MODEL_INFERENCE.ipynb
           existing_cluster_id: ${var.cluster_id}
           depends_on:
             - task_key: data_preparation
         - task_key: result_sets
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS
-            base_parameters:
-              database: ${var.database}
-              schema: ${var.schema}
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS.ipynb
           existing_cluster_id: ${var.cluster_id}
           depends_on:
             - task_key: model_inference
@@ -69,33 +67,31 @@ resources:
         timezone_id: "Europe/Amsterdam"
         pause_status: UNPAUSED
 
-    model-retraining-job:
+    model-retraining-job: # job to retrain the model
       name: DEVOPSCLOUD_EXC_MODEL_RETRAINING_JOB
+      parameters:
+        - name: database
+          default: ${var.database}
+        - name: schema
+          default: ${var.schema}
       tasks:
-        - task_key: data_preparation_train
+        - task_key: data_preparation_train # prepares training data
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb
             base_parameters:
-              database: ${var.database}
               dataset_type: TRAIN
-              schema: ${var.schema}
           existing_cluster_id: ${var.cluster_id}
-        - task_key: model_training
+        - task_key: model_training # trains the model
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_02_MODEL_TRAINING
-            base_parameters:
-              database: ${var.database}
-              schema: ${var.schema}
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_02_MODEL_TRAINING.ipynb
           existing_cluster_id: ${var.cluster_id}
           depends_on:
             - task_key: data_preparation_train
-        - task_key: data_preparation_infer
+        - task_key: data_preparation_infer # prepares inference dataset post-training
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb
             base_parameters:
-              database: ${var.database}
               dataset_type: INFER
-              schema: ${var.schema}
           existing_cluster_id: ${var.cluster_id}
           depends_on:
             - task_key: model_training
@@ -104,30 +100,33 @@ resources:
         timezone_id: "Europe/Amsterdam"
         pause_status: UNPAUSED
 
-    database-init-job:
+    # one-time job that is executed on deploy to initialize tables and views in the database
+    database-init-job: # IMPORTANT: This will only be executed if you define it in the azure-pipelines.yml file (see databricks.exe bundle run -t $env:BUNDLE_TARGET database-init-job)
       name: DEVOPSCLOUD_DATABASE_INIT
+      parameters:
+        - name: database
+          default: ${var.database}
+        - name: schema
+          default: ${var.schema}
       tasks:
         - task_key: database_init
           notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_00_DATABASE_INIT
-            base_parameters:
-              database: ${var.database}
-              schema: ${var.schema}
+            notebook_path: ./notebooks/DEVOPSCLOUD_01_00_DATABASE_INIT.ipynb
           existing_cluster_id: ${var.cluster_id}
 
-targets:
-  stage:
-    workspace:
-      host: "https://medtronic-ml-globalregionsit-stage.cloud.databricks.com/"
-    variables:
-      cluster_id: "<cluster_id>"
+targets: # environment-specific overrides (stage/prod)
+  stage: 
+    workspace: # databricks workspace for stage
+      host: "https://medtronic-ml-globalregionsit-stage.cloud.databricks.com"
+    variables: # stage-specific values for variables
+      cluster_id: "0729-134052-6rbb39xs"
       database: "STAGE_GR_AI_DB"
-      schema: "<schema>"
+      schema: "<PXYZ>"
 
   prod:
-    workspace:
-      host: "https://medtronic-ml-globalregionsit-prod.cloud.databricks.com/"
-    variables:
-      cluster_id: "<cluster_id>"
+    workspace: # databricks workspace for prod
+      host: "https://medtronic-ml-globalregionsit-prod.cloud.databricks.com"
+    variables: # prod-specific values for variables
+      cluster_id: "0722-142109-taigqalw"
       database: "PROD_GR_AI_DB"
-      schema: "<schema>"
+      schema: "<PXYZ>"

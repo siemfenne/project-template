@@ -11,7 +11,7 @@ variables:
   SNOWFLAKE_CONFIG_PATH: '.snowflake/config.toml'
   SNOWFLAKE_CONNECTION_NAME: 'myconnection'
   REPO_NAME: '<REPO_NAME>' #                            <-- change these according to your repo name
-  WAREHOUSE: '<WAREHOUSE>' #                
+  WAREHOUSE: '<WAREHOUSE>' #                            <-- change these according to your needs
   DEV_DB: 'DEV_GR_AI_DB' #                        
   STAGE_DB: 'STAGE_GR_AI_DB' #                    
   PROD_DB: 'PROD_GR_AI_DB' #                      
@@ -54,20 +54,21 @@ steps:
       fi
     displayName: 'Set deploy database based on branch'
 
-  # Test connection with Snowflake
+  # test connection with Snowflake
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection myconnection --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
     displayName: 'Test Snowflake CLI connection'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
 
-  # Fetch repository in Snowflake
+  # fetch repository in Snowflake
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) git fetch "$(UTILITY_DB).$(GIT_SCHEMA).$(REPO_NAME)" --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
     displayName: 'Fetch repo in Snowflake'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
   
+  # run the python file that creates the sql statements used on deploy
   - script: |
       python .snowflake/deploy_sql.py
     displayName: 'Generate and show deploy.sql and deploy_execute.sql'
@@ -78,6 +79,7 @@ steps:
       BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
       WAREHOUSE: $(WAREHOUSE)
 
+  # deploy/execute notebooks/streamlits
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection myconnection --warehouse $(WAREHOUSE)
     displayName: 'Deploy/execute notebooks/streamlits'

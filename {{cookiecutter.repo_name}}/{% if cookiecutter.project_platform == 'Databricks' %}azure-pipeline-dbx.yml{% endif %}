@@ -1,47 +1,35 @@
 trigger:
   branches:
-    include:
-      - stage
-      - main
+    include: [stage, main] # pipeline triggers on stage and main branches
 
 pool:
-  name: 'GR_CLOUD'
+  name: 'GR_CLOUD_MEGA' # the GR_CLOUD_MEGA self-hosted agent is used
 
 steps:
   - checkout: self
-  
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.11'
 
-  - script: |
-      curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-    displayName: 'Install Databricks CLI'
+  - powershell: |
+      # point PATH to your local CLI
+      $env:PATH = "D:\digic_gr_ai\databrickscli;$env:PATH"
+      databricks.exe version
 
-  - script: |
-      # Use the correct bundle target
-      if [ "$(Build.SourceBranchName)" == "stage" ]; then
-        export BUNDLE_TARGET=stage
-      elif [ "$(Build.SourceBranchName)" == "main" ]; then
-        export BUNDLE_TARGET=prod
-      else
-        echo "Not a deployment branch"
-        exit 1
-      fi
+      # map branch -> target and token
+      if ("$(Build.SourceBranchName)" -eq "stage") {
+        $env:BUNDLE_TARGET = "stage"
+        $env:DATABRICKS_TOKEN = "$(DATABRICKS_STAGE_TOKEN)"
+      }
+      elseif ("$(Build.SourceBranchName)" -eq "main") {
+        $env:BUNDLE_TARGET = "prod"
+        $env:DATABRICKS_TOKEN = "$(DATABRICKS_PROD_TOKEN)"
+      }
+      else {
+        Write-Host "Not a deployment branch"; exit 1
+      }
 
-      # CLI will use host from databricks.yml target
-      
-      # Make sure the bundle config is valid
-      echo "Target: $BUNDLE_TARGET"
-      databricks bundle validate -t $BUNDLE_TARGET --debug
-      
-      # Deploy with variables from the YAML file
-      # The --var flag is needed to ensure the variables are properly resolved
-      if [ "$BUNDLE_TARGET" == "stage" ]; then
-        databricks bundle deploy -t $BUNDLE_TARGET
-      elif [ "$BUNDLE_TARGET" == "prod" ]; then
-        databricks bundle deploy -t $BUNDLE_TARGET
-      fi
-    displayName: 'Deploy DAB to correct workspace'
-    env:
-      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)        # Using PAT instead of service principal
+      Write-Host "Target: $env:BUNDLE_TARGET"
+
+      # validate, deploy, & execute
+      databricks.exe bundle validate -t $env:BUNDLE_TARGET --debug
+      databricks.exe bundle deploy   -t $env:BUNDLE_TARGET
+      databricks.exe bundle run -t $env:BUNDLE_TARGET database-init-job
+    displayName: 'Validate, deploy, & execute DAB'
