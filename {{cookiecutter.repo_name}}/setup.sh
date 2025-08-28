@@ -2,18 +2,27 @@
 
 set -e
 
+case "$OSTYPE" in
+  msys*|cygwin*)
+    AZ="/c/Users/fennes2/azure-cli-2.75.0-x64/bin/az.cmd"
+    ;;
+  darwin*)
+    AZ="az"   # On macOS, installed via brew
+    ;;
+esac
+
 # Set your Azure DevOps org and project
 organization="https://dev.azure.com/MedtronicBI"
 project="DigIC GR AI"
 
 # Configure Azure DevOps CLI
-az devops configure --defaults organization="$organization" project="$project"
+"$AZ" devops configure --defaults organization="$organization" project="$project"
 
 # Prompt for new repo name
 read -p "Enter new repository name: " repo_name
 
 # Create the new repository in Azure DevOps
-az repos create --name "$repo_name"
+"$AZ" repos create --name "$repo_name"
 
 # URL encode the project name (replace spaces with %20)
 remote_project=$(echo "$project" | sed 's/ /%20/g')
