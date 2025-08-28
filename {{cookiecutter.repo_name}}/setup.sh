@@ -95,7 +95,11 @@ fi
 if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
     read -p "Enter your Medtronic username (e.g. fennes2 for Siem Fenne): " user_name
     dbx_email="$user_name@medtronic.com"
-    dbx_path="//Workspace/Users/$dbx_email/$repo_name"
+    if [[ "$OSTYPE" == darwin* ]]; then
+        dbx_path="/Workspace/Users/$dbx_email/$repo_name"
+    else
+        dbx_path="//Workspace/Users/$dbx_email/$repo_name"
+    fi
 
     declare -A dbx_envs
     dbx_envs[PROD]=prod
