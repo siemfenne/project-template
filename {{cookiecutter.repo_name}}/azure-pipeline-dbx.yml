@@ -1,35 +1,58 @@
 trigger:
   branches:
-    include: [stage, main] # pipeline triggers on stage and main branches
+    include: [stage, main]
 
 pool:
-  name: 'GR_CLOUD_MEGA' # the GR_CLOUD_MEGA self-hosted agent is used
+  name: 'GR_CLOUD_MEGA'
+
+variables:
+  DATABRICKS_CLI_DIR: 'D:\digic_gr_ai\databrickscli'
 
 steps:
   - checkout: self
 
+  # setup variables once
   - powershell: |
-      # point PATH to your local CLI
-      $env:PATH = "D:\digic_gr_ai\databrickscli;$env:PATH"
+      $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
       databricks.exe version
 
-      # map branch -> target and token
       if ("$(Build.SourceBranchName)" -eq "stage") {
-        $env:BUNDLE_TARGET = "stage"
-        $env:DATABRICKS_TOKEN = "$(DATABRICKS_STAGE_TOKEN)"
+        Write-Host "Using stage environment"
+        Write-Output "##vso[task.setvariable variable=BUNDLE_TARGET]stage"
+        Write-Output "##vso[task.setvariable variable=DATABRICKS_TOKEN;issecret=true]$(DATABRICKS_STAGE_TOKEN)"
       }
       elseif ("$(Build.SourceBranchName)" -eq "main") {
-        $env:BUNDLE_TARGET = "prod"
-        $env:DATABRICKS_TOKEN = "$(DATABRICKS_PROD_TOKEN)"
+        Write-Host "Using prod environment"
+        Write-Output "##vso[task.setvariable variable=BUNDLE_TARGET]prod"
+        Write-Output "##vso[task.setvariable variable=DATABRICKS_TOKEN;issecret=true]$(DATABRICKS_PROD_TOKEN)"
       }
       else {
-        Write-Host "Not a deployment branch"; exit 1
+        Write-Host "Not a deployment branch"
+        exit 1
       }
+    name: setup
+    displayName: 'Setup environment variables'
 
-      Write-Host "Target: $env:BUNDLE_TARGET"
+  # validate DAB bundle
+  - powershell: |
+      $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
+      databricks.exe bundle validate -t "$(BUNDLE_TARGET)" --debug
+    displayName: 'Validate DAB bundle'
+    env:
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
 
-      # validate, deploy, & execute
-      databricks.exe bundle validate -t $env:BUNDLE_TARGET --debug
-      databricks.exe bundle deploy   -t $env:BUNDLE_TARGET
-      databricks.exe bundle run -t $env:BUNDLE_TARGET database-init-job
-    displayName: 'Validate, deploy, & execute DAB'
+  # deploy DAB bundle
+  - powershell: |
+      $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
+      databricks.exe bundle deploy -t "$(BUNDLE_TARGET)"
+    displayName: 'Deploy DAB bundle'
+    env:
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+  # run jobs on deploy (this runs the database-init-job job of the databricks.yml file)
+  - powershell: |
+      $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
+      databricks.exe bundle run -t "$(BUNDLE_TARGET)" database-init-job
+    displayName: 'Execute Jobs on deploy'
+    env:
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
