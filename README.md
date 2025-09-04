@@ -61,23 +61,27 @@ repo_name/
 
 ### Platform-Specific Files
 
+The template automatically configures your project based on the selected platform using **post-generation hooks**. Unwanted platform-specific files are automatically removed during project generation.
+
 #### When `project_platform = "Snowflake"`:
 ```
 ├── .snowflake/                   # Snowflake configuration
 │   ├── config.toml              # Snowflake connection config
 │   ├── deploy.sql               # SQL deployment scripts
 │   └── deploy_sql.py            # Python deployment utilities
-└── streamlit/                   # Streamlit app directory
-    ├── streamlit_app.py         # Main Streamlit application
-    └── environment.yml          # Streamlit dependencies
-├── azure-pipeline-sf.yml        # Azure DevOps CI/CD pipeline template for Snowflake
+├── streamlit/                   # Streamlit app directory
+│   ├── streamlit_app.py         # Main Streamlit application
+│   └── environment.yml          # Streamlit dependencies
+└── azure-pipeline-sf.yml        # Azure DevOps CI/CD pipeline template for Snowflake
 ```
+*Note: Databricks-specific files (`azure-pipeline-dbx.yml`, `databricks.yml`) are automatically removed.*
 
 #### When `project_platform = "Databricks"`:
 ```
 ├── databricks.yml               # Databricks project configuration for pipeline
-├── azure-pipeline-dbx.yml       # Azure DevOps CI/CD pipeline template for Databricks
+└── azure-pipeline-dbx.yml       # Azure DevOps CI/CD pipeline template for Databricks
 ```
+*Note: Snowflake-specific files (`.snowflake/`, `streamlit/`, `azure-pipeline-sf.yml`) are automatically removed.*
 
 ### Dependency Management Files
 
@@ -91,6 +95,8 @@ Based on your `dependency_file` choice, one of the following will be created in 
 ## Getting Started with Your New Project
 
 After generating your project:
+
+> **📝 Note**: The template uses post-generation hooks to automatically clean up platform-specific files. You'll see confirmation messages during generation (e.g., "Removed azure-pipeline-sf.yml", "Project template configured for Databricks").
 
 ### 1. Setup Scripts (Recommended)
 
@@ -159,12 +165,14 @@ This template implements a Git branching strategy aligned with the team's deploy
 
 ## CI/CD Pipeline
 
-The included `azure-pipeline.yml` provides:
+The included pipeline file (platform-specific) provides:
 
 - **Triggers**: Pull requests to stage/main and pushes to main/stage/dev
 - **Environment-specific database mapping** via Azure DevOps variables
-- **Snowflake CLI authentication** via JWT (private key)
-- **Connection testing** for both temporary and named connections
+- **Platform-specific authentication**:
+  - **Snowflake**: JWT authentication via private key
+  - **Databricks**: Token-based authentication
+- **Connection testing** and validation
 - **Notebook structure validation**
 
 ## Best Practices
