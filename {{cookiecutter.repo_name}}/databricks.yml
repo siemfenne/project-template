@@ -119,7 +119,7 @@ targets: # environment-specific overrides (stage/prod)
     workspace: # databricks workspace for stage
       host: "https://medtronic-ml-globalregionsit-stage.cloud.databricks.com"
     variables: # stage-specific values for variables
-      cluster_id: "0729-134052-6rbb39xs"
+      cluster_id: "<cluster_id_stage>"
       database: "STAGE_GR_AI_DB"
       schema: "<PXYZ>"
 
@@ -127,6 +127,6 @@ targets: # environment-specific overrides (stage/prod)
     workspace: # databricks workspace for prod
       host: "https://medtronic-ml-globalregionsit-prod.cloud.databricks.com"
     variables: # prod-specific values for variables
-      cluster_id: "0722-142109-taigqalw"
+      cluster_id: "<cluster_id_prod>"
       database: "PROD_GR_AI_DB"
       schema: "<PXYZ>"
