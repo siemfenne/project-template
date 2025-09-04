@@ -36,3 +36,4 @@ for dir_name in dirs_to_remove:
         print(f"Removed directory {dir_name}")
 
 print(f"Project template configured for {project_platform}")
+print(f"You can continue connecting the project to Azure DevOps and Snowflake/Databricks using the setup.ps1 or setup.sh scripts")
