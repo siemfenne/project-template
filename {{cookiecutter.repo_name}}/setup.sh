@@ -73,20 +73,17 @@ CREATE GIT REPOSITORY IF NOT EXISTS $repo_name
 "
 
     echo "Creating Git repository object in Snowflake..."
-    echo "$sf_cmd" | snow sql -c service_principal
+    snow sql -c service_principal --query "$sf_cmd"
 
     databases=("PROD_GR_AI_DB" "STAGE_GR_AI_DB" "DEV_GR_AI_DB")
     role="GR_AI_ENGINEER"
 
     echo "Creating schemas and assigning grants in each environment database..."
     for db in "${databases[@]}"; do
-        sql="
-USE DATABASE $db;
-CREATE SCHEMA IF NOT EXISTS $repo_name;
-GRANT ALL PRIVILEGES ON SCHEMA $repo_name TO ROLE $role;
-"
         echo "Initializing schema and grants in $db..."
-        echo "$sql" | snow sql -c service_principal
+        snow sql -c service_principal --query "USE DATABASE $db"
+        snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $repo_name"
+        snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $repo_name TO ROLE $role"
     done
 
     unset PRIVATE_KEY_PASSPHRASE
@@ -101,24 +98,26 @@ if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
         dbx_path="//Workspace/Users/$dbx_email/$repo_name"
     fi
 
-    declare -A dbx_envs
-    dbx_envs[PROD]=prod
-    dbx_envs[STAGE]=stage
-    dbx_envs[DEV]=dev
+    profile_for_env() {
+    case "$1" in
+      PROD)  echo "prod"  ;;
+      STAGE) echo "stage" ;;
+      DEV)   echo "dev"   ;;
+      *)     echo "dev"   ;;
+    esac
+  }
 
-    for env in PROD STAGE DEV; do
-        profile="${dbx_envs[$env]}"
-        echo "Linking repo in Databricks $env environment with CLI profile '$profile'..."
+  for env in PROD STAGE DEV; do
+    profile="$(profile_for_env "$env")"
+    echo "Linking repo in Databricks $env environment with CLI profile '$profile'..."
+    if databricks --profile "$profile" repos create "$remote_url" azureDevOpsServices --path "$dbx_path"; then
+      echo "Successfully linked to Databricks $env at $dbx_path"
+    else
+      echo "Could not create repo in Databricks $env. It may already exist or there was an error."
+    fi
+  done
 
-        # Try to create the repo, catch and display errors if any
-        if databricks --profile "$profile" repos create "$remote_url" azureDevOpsServices --path "$dbx_path"; then
-            echo "Successfully linked to Databricks $env at $dbx_path"
-        else
-            echo "Could not create repo in Databricks $env. It may already exist or there was an error."
-        fi
-    done
-
-    echo "Databricks integration complete."
+  echo "Databricks integration complete."
 fi
 
 echo "All done! Project ready, and integrations completed if chosen."
