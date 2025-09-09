@@ -5,6 +5,13 @@ import shutil
 # get the project platform from cookiecutter context
 project_platform = '{{ cookiecutter.project_platform }}'
 
+# fix for macOS: rename 00snowflake to .snowflake to avoid cookiecutter dotfile issues
+if os.path.exists('00snowflake'):
+    if os.path.exists('.snowflake'):
+        shutil.rmtree('.snowflake')
+    os.rename('00snowflake', '.snowflake')
+    # print("Renamed 00snowflake to .snowflake (macOS compatibility fix)")
+
 # define files to remove based on platform choice
 if project_platform == 'Snowflake':
     # remove Databricks-specific files
@@ -20,6 +27,7 @@ elif project_platform == 'Databricks':
     ]
     dirs_to_remove = [
         '.snowflake',
+        # '00snowflake',  # fallback in case rename didn't happen
         'streamlit'
     ]
 
