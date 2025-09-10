@@ -82,8 +82,8 @@ CREATE GIT REPOSITORY IF NOT EXISTS $repo_name
     for db in "${databases[@]}"; do
         echo "Initializing schema and grants in $db..."
         snow sql -c service_principal --query "USE DATABASE $db"
-        snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $repo_name"
-        snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $repo_name TO ROLE $role"
+        snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $db.$repo_name"
+        snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $db.$repo_name TO ROLE $role"
     done
 
     unset PRIVATE_KEY_PASSPHRASE
