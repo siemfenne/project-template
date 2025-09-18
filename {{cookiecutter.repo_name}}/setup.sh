@@ -61,7 +61,7 @@ read -p "Do you want to link this repo in Databricks? (y/n): " setupDatabricks
 
 if [[ "$setupSnowflake" == "y" || "$setupSnowflake" == "Y" ]]; then
     # Prompt for Snowflake passphrase (set env var for this session)
-    read -s -p "Enter private key passphrase: " passphrase
+    read -s -p "Enter Snowflakeprivate key passphrase: " passphrase
     echo
     export PRIVATE_KEY_PASSPHRASE="$passphrase"
 
