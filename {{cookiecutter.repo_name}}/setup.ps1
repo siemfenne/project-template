@@ -48,7 +48,7 @@ $setupDatabricks = Read-Host "Do you want to link this repo in Databricks? (y/n)
 
 if ($setupSnowflake -eq "y") {
     # Prompt for Snowflake passphrase (set env var for this session)
-    $passphrase = Read-Host -AsSecureString "Enter private key passphrase"
+    $passphrase = Read-Host -AsSecureString "Enter Snowflake private key passphrase"
     $unsecurePass = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($passphrase))
     $env:PRIVATE_KEY_PASSPHRASE = $unsecurePass
 

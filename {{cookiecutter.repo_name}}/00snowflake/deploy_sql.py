@@ -14,6 +14,7 @@ output_path = os.path.join(base_dir, 'deploy.sql')
 deploy_lines = []
 use_lines = [
     f"USE DATABASE {database};\n",
+    f"CREATE SCHEMA IF NOT EXISTS {schema};\n",
     f"USE SCHEMA {schema};\n\n"
 ]
 deploy_lines.extend(use_lines)
