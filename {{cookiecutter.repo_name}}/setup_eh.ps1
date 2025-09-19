@@ -353,9 +353,9 @@ function Start-AzureSetup {
     return $true
 }
 
-# Function to validate Snowflake CLI installation and configuration
-function Test-SnowflakeCli {
-    Write-Log "Validating Snowflake CLI installation and configuration..."
+# Function to setup Snowflake integration
+function Set-SnowflakeIntegration {
+    Write-Log "Setting up Snowflake integration..."
     
     # Check if Snowflake CLI (snow) is installed
     if (-not (Test-CommandExists "snow")) {
@@ -364,35 +364,11 @@ function Test-SnowflakeCli {
         return $false
     }
     
-    # Check if service_principal connection exists
-    try {
-        snow connection test -c service_principal 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Snowflake connection 'service_principal' is not configured or not working"
-            Write-Error "Please have a look at the CICD ReportOut document for more information"
-            return $false
-        }
-    } catch {
-        Write-Error "Snowflake connection 'service_principal' is not configured or not working"
-        Write-Error "Please have a look at the CICD ReportOut document for more information"
-        return $false
-    }
-    
-    Write-Success "Snowflake CLI validated successfully"
-    return $true
-}
-
-# Function to setup Snowflake integration
-function Set-SnowflakeIntegration {
-    Write-Log "Setting up Snowflake integration..."
-    
-    if (-not (Test-SnowflakeCli)) {
-        return $false
-    }
-    
     # Prompt for Snowflake passphrase with validation
     $maxAttempts = 3
     $attempt = 1
+    
+    Write-Log "Please provide your Snowflake private key passphrase to test the connection..."
     
     while ($attempt -le $maxAttempts) {
         $passphrase = Read-Host -AsSecureString "Enter Snowflake private key passphrase (attempt $attempt/$maxAttempts)"
@@ -408,6 +384,7 @@ function Set-SnowflakeIntegration {
         $env:PRIVATE_KEY_PASSPHRASE = $unsecurePass
         
         # Test connection with the passphrase
+        Write-Log "Testing Snowflake connection with provided passphrase..."
         try {
             snow connection test -c service_principal 2>$null
             if ($LASTEXITCODE -eq 0) {
@@ -415,6 +392,7 @@ function Set-SnowflakeIntegration {
                 break
             } else {
                 Write-Error "Invalid passphrase or connection failed"
+                Write-Error "Please check that 'service_principal' connection is configured correctly"
                 Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
                 $attempt++
                 
@@ -424,6 +402,7 @@ function Set-SnowflakeIntegration {
             }
         } catch {
             Write-Error "Invalid passphrase or connection failed"
+            Write-Error "Please check that 'service_principal' connection is configured correctly"
             Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
             $attempt++
             
@@ -435,6 +414,7 @@ function Set-SnowflakeIntegration {
     
     if ($attempt -gt $maxAttempts) {
         Write-Error "Failed to authenticate with Snowflake after $maxAttempts attempts"
+        Write-Error "Please have a look at the CICD ReportOut document for more information"
         return $false
     }
     

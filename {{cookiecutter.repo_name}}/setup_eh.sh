@@ -290,9 +290,9 @@ if ! main_azure_setup; then
     exit 1
 fi
 
-# Function to validate Snowflake CLI installation and configuration
-validate_snowflake_cli() {
-    log "Validating Snowflake CLI installation and configuration..."
+# Function to setup Snowflake integration
+setup_snowflake() {
+    log "Setting up Snowflake integration..."
     
     # Check if Snowflake CLI (snow) is installed
     if ! command_exists snow; then
@@ -301,29 +301,12 @@ validate_snowflake_cli() {
         return 1
     fi
     
-    # Check if service_principal connection exists
-    if ! snow connection test -c service_principal &>/dev/null; then
-        log_error "Snowflake connection 'service_principal' is not configured or not working"
-        log_error "Please have a look at the CICD ReportOut document for more information"
-        return 1
-    fi
-    
-    log_success "Snowflake CLI validated successfully"
-    return 0
-}
-
-# Function to setup Snowflake integration
-setup_snowflake() {
-    log "Setting up Snowflake integration..."
-    
-    if ! validate_snowflake_cli; then
-        return 1
-    fi
-    
     # Prompt for Snowflake passphrase with validation
     local passphrase
     local max_attempts=3
     local attempt=1
+    
+    log "Please provide your Snowflake private key passphrase to test the connection..."
     
     while [[ $attempt -le $max_attempts ]]; do
         read -s -p "Enter Snowflake private key passphrase (attempt $attempt/$max_attempts): " passphrase
@@ -339,11 +322,13 @@ setup_snowflake() {
         export PRIVATE_KEY_PASSPHRASE="$passphrase"
         
         # Test connection with the passphrase
+        log "Testing Snowflake connection with provided passphrase..."
         if snow connection test -c service_principal &>/dev/null; then
             log_success "Snowflake authentication successful"
             break
         else
             log_error "Invalid passphrase or connection failed"
+            log_error "Please check that 'service_principal' connection is configured correctly"
             unset PRIVATE_KEY_PASSPHRASE
             attempt=$((attempt + 1))
             
@@ -355,6 +340,7 @@ setup_snowflake() {
     
     if [[ $attempt -gt $max_attempts ]]; then
         log_error "Failed to authenticate with Snowflake after $max_attempts attempts"
+        log_error "Please have a look at the CICD ReportOut document for more information"
         return 1
     fi
     
