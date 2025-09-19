@@ -459,7 +459,7 @@ validate_databricks_cli() {
 # Function to setup Databricks integration
 setup_databricks() {
     log "Setting up Databricks integration..."
-{{ ... }}
+    
     if ! validate_databricks_cli; then
         return 1
     fi
