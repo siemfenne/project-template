@@ -422,14 +422,14 @@ validate_databricks_cli() {
             fi
         done
         
-        if [[ ${#missing_profiles[@]} -eq 0 ]]; then
+        if [[ {% raw %}${#missing_profiles[@]}{% endraw %} -eq 0 ]]; then
             log_success "Databricks CLI validated successfully"
             return 0
         fi
         
         # Profiles failed - check if it's a network connectivity issue
         log_warning "Failed to validate Databricks CLI profiles: ${missing_profiles[*]}"
-        log "This could be due to network connectivity issues."
+        log_warning "This could be due to network connectivity issues."
         
         read -p "Are you connected to Medtronic's network or VPN? (y/n): " network_connected
         
@@ -441,7 +441,7 @@ validate_databricks_cli() {
         else
             # User not connected - offer to retry
             log_warning "Please connect to Medtronic's network or VPN to access Databricks workspaces."
-            log "Production and staging Databricks workspaces require network connectivity."
+            log_warning "Connecting to Databricks workspaces requires network connectivity."
             
             read -p "After connecting, would you like to try again? (y/n): " try_again
             
