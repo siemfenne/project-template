@@ -435,7 +435,7 @@ validate_databricks_cli() {
         fi
     done
     
-    if [[ ${#missing_profiles[@]} -gt 0 ]]; then
+    if [[ {% raw %}${#missing_profiles[@]}{% endraw %} -gt 0 ]]; then
         log_error "Missing or invalid Databricks CLI profiles: ${missing_profiles[*]}"
         log_error "Please configure profiles (see instructions in CICD document)"
         return 1
@@ -514,7 +514,7 @@ setup_databricks() {
     done
     
     # Report results
-    if [[ ${#failed_envs[@]} -eq 0 ]]; then
+    if [[ {% raw %}${#failed_envs[@]}{% endraw %} -eq 0 ]]; then
         log_success "Databricks integration completed successfully for all environments"
         return 0
     else
