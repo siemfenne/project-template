@@ -584,11 +584,5 @@ if [[ ("$setupSnowflake" != "y" && "$setupSnowflake" != "Y") && ("$setupDatabric
 elif [[ ("$setupSnowflake" != "y" && "$setupSnowflake" != "Y") || "$snowflake_success" == "true" ]] && [[ ("$setupDatabricks" != "y" && "$setupDatabricks" != "Y") || "$databricks_success" == "true" ]]; then
     log_success "Project setup completed successfully! Your project is ready for development."
 else
-    log_warning "Project setup completed with some integration failures."
-    log_warning "The Azure DevOps repository is ready, but you may need to manually configure failed integrations."
-    echo
-    log "To retry integrations later, you can:"
-    log "  - Fix the configuration issues mentioned above"
-    log "  - Run this script again"
-    log "  - Or manually configure the failed integrations"
+    log_warning "Something went wrong in the setup process. Please have a look at the ERROR messages above."
 fi

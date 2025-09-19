@@ -693,13 +693,7 @@ try {
     } elseif ((($setupSnowflake -ne "y" -and $setupSnowflake -ne "Y") -or $snowflakeSuccess) -and (($setupDatabricks -ne "y" -and $setupDatabricks -ne "Y") -or $databricksSuccess)) {
         Write-Success "Project setup completed successfully! Your project is ready for development."
     } else {
-        Write-Warning "Project setup completed with some integration failures."
-        Write-Warning "The Azure DevOps repository is ready, but you may need to manually configure failed integrations."
-        Write-Host ""
-        Write-Log "To retry integrations later, you can:"
-        Write-Log "  - Fix the configuration issues mentioned above"
-        Write-Log "  - Run this script again"
-        Write-Log "  - Or manually configure the failed integrations"
+        Write-Warning "Something went wrong in the setup process. Please have a look at the ERROR messages above."
     }
 
 } catch {
