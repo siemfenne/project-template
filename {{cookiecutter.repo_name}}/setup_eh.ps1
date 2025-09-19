@@ -640,14 +640,22 @@ try {
     $setupSnowflake = Read-Host "Do you want to link this repo in Snowflake? (y/n)"
     $setupDatabricks = Read-Host "Do you want to link this repo in Databricks? (y/n)"
 
+    # Track integration results
+    $snowflakeSuccess = $false
+    $databricksSuccess = $false
+
     if ($setupSnowflake -eq "y" -or $setupSnowflake -eq "Y") {
-        if (-not (Set-SnowflakeIntegration)) {
+        if (Set-SnowflakeIntegration) {
+            $snowflakeSuccess = $true
+        } else {
             Write-Error "Snowflake setup failed, but continuing with other integrations..."
         }
     }
 
     if ($setupDatabricks -eq "y" -or $setupDatabricks -eq "Y") {
-        if (-not (Set-DatabricksIntegration)) {
+        if (Set-DatabricksIntegration) {
+            $databricksSuccess = $true
+        } else {
             Write-Error "Databricks setup failed, but continuing..."
         }
     }
@@ -655,20 +663,44 @@ try {
     # Final summary
     Write-Host ""
     Write-Log "=== Setup Summary ==="
-    Write-Success "Project setup completed!"
+    Write-Success "Azure DevOps setup completed successfully!"
     Write-Success "Repository: $script:REPO_NAME"
     Write-Success "Remote URL: $script:REMOTE_URL"
     Write-Success "Branches created: main, stage, dev"
 
+    Write-Host ""
+    Write-Log "Integration Status:"
     if ($setupSnowflake -eq "y" -or $setupSnowflake -eq "Y") {
-        Write-Log "✓ Snowflake integration attempted"
+        if ($snowflakeSuccess) {
+            Write-Success "✓ Snowflake integration completed successfully"
+        } else {
+            Write-Error "✗ Snowflake integration failed"
+        }
     }
 
     if ($setupDatabricks -eq "y" -or $setupDatabricks -eq "Y") {
-        Write-Log "✓ Databricks integration attempted"
+        if ($databricksSuccess) {
+            Write-Success "✓ Databricks integration completed successfully" 
+        } else {
+            Write-Error "✗ Databricks integration failed"
+        }
     }
 
-    Write-Log "All done! Your project is ready for development."
+    # Overall status message
+    Write-Host ""
+    if (($setupSnowflake -ne "y" -and $setupSnowflake -ne "Y") -and ($setupDatabricks -ne "y" -and $setupDatabricks -ne "Y")) {
+        Write-Success "Project setup completed! Your project is ready for development."
+    } elseif ((($setupSnowflake -ne "y" -and $setupSnowflake -ne "Y") -or $snowflakeSuccess) -and (($setupDatabricks -ne "y" -and $setupDatabricks -ne "Y") -or $databricksSuccess)) {
+        Write-Success "Project setup completed successfully! Your project is ready for development."
+    } else {
+        Write-Warning "Project setup completed with some integration failures."
+        Write-Warning "The Azure DevOps repository is ready, but you may need to manually configure failed integrations."
+        Write-Host ""
+        Write-Log "To retry integrations later, you can:"
+        Write-Log "  - Fix the configuration issues mentioned above"
+        Write-Log "  - Run this script again"
+        Write-Log "  - Or manually configure the failed integrations"
+    }
 
 } catch {
     Handle-Error $_.Exception.Message "Main execution"

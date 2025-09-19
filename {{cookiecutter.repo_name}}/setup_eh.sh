@@ -531,14 +531,22 @@ echo
 read -p "Do you want to link this repo in Snowflake? (y/n): " setupSnowflake
 read -p "Do you want to link this repo in Databricks? (y/n): " setupDatabricks
 
+# Track integration results
+snowflake_success=false
+databricks_success=false
+
 if [[ "$setupSnowflake" == "y" || "$setupSnowflake" == "Y" ]]; then
-    if ! setup_snowflake; then
+    if setup_snowflake; then
+        snowflake_success=true
+    else
         log_error "Snowflake setup failed, but continuing with other integrations..."
     fi
 fi
 
 if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
-    if ! setup_databricks; then
+    if setup_databricks; then
+        databricks_success=true
+    else
         log_error "Databricks setup failed, but continuing..."
     fi
 fi
@@ -546,17 +554,41 @@ fi
 # Final summary
 echo
 log "=== Setup Summary ==="
-log_success "Project setup completed!"
+log_success "Azure DevOps setup completed successfully!"
 log_success "Repository: $REPO_NAME"
 log_success "Remote URL: $REMOTE_URL"
 log_success "Branches created: main, stage, dev"
 
+echo
+log "Integration Status:"
 if [[ "$setupSnowflake" == "y" || "$setupSnowflake" == "Y" ]]; then
-    log "✓ Snowflake integration attempted"
+    if [[ "$snowflake_success" == "true" ]]; then
+        log_success "✓ Snowflake integration completed successfully"
+    else
+        log_error "✗ Snowflake integration failed"
+    fi
 fi
 
 if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
-    log "✓ Databricks integration attempted"
+    if [[ "$databricks_success" == "true" ]]; then
+        log_success "✓ Databricks integration completed successfully" 
+    else
+        log_error "✗ Databricks integration failed"
+    fi
 fi
 
-log "All done! Your project is ready for development."
+# Overall status message
+echo
+if [[ ("$setupSnowflake" != "y" && "$setupSnowflake" != "Y") && ("$setupDatabricks" != "y" && "$setupDatabricks" != "Y") ]]; then
+    log_success "Project setup completed! Your project is ready for development."
+elif [[ ("$setupSnowflake" != "y" && "$setupSnowflake" != "Y") || "$snowflake_success" == "true" ]] && [[ ("$setupDatabricks" != "y" && "$setupDatabricks" != "Y") || "$databricks_success" == "true" ]]; then
+    log_success "Project setup completed successfully! Your project is ready for development."
+else
+    log_warning "Project setup completed with some integration failures."
+    log_warning "The Azure DevOps repository is ready, but you may need to manually configure failed integrations."
+    echo
+    log "To retry integrations later, you can:"
+    log "  - Fix the configuration issues mentioned above"
+    log "  - Run this script again"
+    log "  - Or manually configure the failed integrations"
+fi
