@@ -91,11 +91,11 @@ function Test-AzureCli {
     try {
         $null = az account show 2>$null
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "Not logged in to Azure CLI. Please run: az login"
+            Write-Error "Not logged in to Azure CLI. Please run: az login --allow-no-subscriptions"
             return $false
         }
     } catch {
-        Write-Error "Not logged in to Azure CLI. Please run: az login"
+        Write-Error "Not logged in to Azure CLI. Please run: az login --allow-no-subscriptions"
         return $false
     }
     
@@ -433,7 +433,7 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
             throw "Failed to create Git repository object"
         }
     } catch {
-        Write-Error "Failed to create Git repository object in Snowflake: $_"
+        Write-Error "Failed to create Git repository object in Snowflake"
         Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
         return $false
     }
@@ -455,7 +455,7 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
                 throw "Failed to use database $db"
             }
         } catch {
-            Write-Error "Failed to use database $db: $_"
+            Write-Error "Failed to use database $db"
             Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
             return $false
         }
@@ -467,7 +467,7 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
                 throw "Failed to create schema"
             }
         } catch {
-            Write-Error "Failed to create schema $db.$script:REPO_NAME: $_"
+            Write-Error "Failed to create schema $db.$script:REPO_NAME"
             Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
             return $false
         }
@@ -479,7 +479,7 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
                 throw "Failed to grant privileges"
             }
         } catch {
-            Write-Error "Failed to grant privileges on schema $db.$script:REPO_NAME to role $role: $_"
+            Write-Error "Failed to grant privileges on schema $db.$script:REPO_NAME to role $role"
             Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
             return $false
         }
