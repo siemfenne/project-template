@@ -83,7 +83,7 @@ function Test-AzureCli {
     # Check if Azure CLI exists
     if (-not (Test-CommandExists "az")) {
         Write-Error "Azure CLI is not installed"
-        Write-Error "Please install Azure CLI from: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
+        Write-Error "Please install Azure CLI or update the path"
         return $false
     }
     
@@ -360,7 +360,7 @@ function Test-SnowflakeCli {
     # Check if Snowflake CLI (snow) is installed
     if (-not (Test-CommandExists "snow")) {
         Write-Error "Snowflake CLI ('snow') is not installed"
-        Write-Error "Please install it from: https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2/installation/installation"
+        Write-Error "Please install it from: https://docs.snowflake.com/en/developer-guide/snowflake-cli/installation/installation"
         return $false
     }
     
@@ -369,12 +369,12 @@ function Test-SnowflakeCli {
         snow connection test -c service_principal 2>$null
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Snowflake connection 'service_principal' is not configured or not working"
-            Write-Error "Please configure the connection using: snow connection add"
+            Write-Error "Please have a look at the CICD ReportOut document for more information"
             return $false
         }
     } catch {
         Write-Error "Snowflake connection 'service_principal' is not configured or not working"
-        Write-Error "Please configure the connection using: snow connection add"
+        Write-Error "Please have a look at the CICD ReportOut document for more information"
         return $false
     }
     
@@ -521,7 +521,7 @@ function Test-DatabricksCli {
     # Check if Databricks CLI is installed
     if (-not (Test-CommandExists "databricks")) {
         Write-Error "Databricks CLI is not installed"
-        Write-Error "Please install it from: https://docs.databricks.com/dev-tools/cli/databricks-cli.html"
+        Write-Error "Please install it from: https://docs.databricks.com/aws/en/dev-tools/cli/install"
         return $false
     }
     

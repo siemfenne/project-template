@@ -78,13 +78,13 @@ validate_azure_cli() {
     # Check if Azure CLI exists
     if ! command_exists "$AZ"; then
         log_error "Azure CLI not found at: $AZ"
-        log_error "Please install Azure CLI or update the path in the script"
+        log_error "Please install Azure CLI or update the path"
         return 1
     fi
     
     # Check if user is logged in
     if ! "$AZ" account show &>/dev/null; then
-        log_error "Not logged in to Azure CLI. Please run: $AZ login"
+        log_error "Not logged in to Azure CLI. Please run: $AZ login --allow-no-subscriptions"
         return 1
     fi
     
@@ -297,14 +297,14 @@ validate_snowflake_cli() {
     # Check if Snowflake CLI (snow) is installed
     if ! command_exists snow; then
         log_error "Snowflake CLI ('snow') is not installed"
-        log_error "Please install it from: https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2/installation/installation"
+        log_error "Please install it from: https://docs.snowflake.com/en/developer-guide/snowflake-cli/installation/installation"
         return 1
     fi
     
     # Check if service_principal connection exists
     if ! snow connection test -c service_principal &>/dev/null; then
         log_error "Snowflake connection 'service_principal' is not configured or not working"
-        log_error "Please configure the connection using: snow connection add"
+        log_error "Please have a look at the CICD ReportOut document for more information"
         return 1
     fi
     
@@ -421,7 +421,7 @@ validate_databricks_cli() {
     # Check if Databricks CLI is installed
     if ! command_exists databricks; then
         log_error "Databricks CLI is not installed"
-        log_error "Please install it from: https://docs.databricks.com/dev-tools/cli/databricks-cli.html"
+        log_error "Please install it from: https://docs.databricks.com/aws/en/dev-tools/cli/install"
         return 1
     fi
     
