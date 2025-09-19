@@ -505,29 +505,54 @@ function Test-DatabricksCli {
         return $false
     }
     
-    # Check required profiles
-    $requiredProfiles = @("prod", "stage", "dev")
-    $missingProfiles = @()
-    
-    foreach ($profile in $requiredProfiles) {
-        try {
-            databricks --profile $profile current-user me 2>$null
-            if ($LASTEXITCODE -ne 0) {
+    while ($true) {
+        # Check required profiles
+        $requiredProfiles = @("prod", "stage", "dev")
+        $missingProfiles = @()
+        
+        foreach ($profile in $requiredProfiles) {
+            try {
+                databricks --profile $profile current-user me 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                    $missingProfiles += $profile
+                }
+            } catch {
                 $missingProfiles += $profile
             }
-        } catch {
-            $missingProfiles += $profile
+        }
+        
+        if ($missingProfiles.Count -eq 0) {
+            Write-Success "Databricks CLI validated successfully"
+            return $true
+        }
+        
+        # Profiles failed - check if it's a network connectivity issue
+        Write-Warning "Failed to validate Databricks CLI profiles: $($missingProfiles -join ', ')"
+        Write-Warning "This could be due to network connectivity issues."
+        
+        $networkConnected = Read-Host "Are you connected to Medtronic's network or VPN? (y/n)"
+        
+        if ($networkConnected -eq "y" -or $networkConnected -eq "Y") {
+            # User claims to be connected - show configuration error
+            Write-Error "Missing or invalid Databricks CLI profiles: $($missingProfiles -join ', ')"
+            Write-Error "Please configure profiles (see instructions in CICD document)"
+            return $false
+        } else {
+            # User not connected - offer to retry
+            Write-Warning "Please connect to Medtronic's network or VPN to access Databricks workspaces."
+            Write-Warning "Connecting to Databricks workspaces requires network connectivity."
+            
+            $tryAgain = Read-Host "After connecting, would you like to try again? (y/n)"
+            
+            if ($tryAgain -ne "y" -and $tryAgain -ne "Y") {
+                Write-Warning "Databricks CLI validation skipped due to network connectivity."
+                return $false
+            }
+            
+            Write-Log "Retrying Databricks CLI validation..."
+            # Continue the while loop to retry
         }
     }
-    
-    if ($missingProfiles.Count -gt 0) {
-        Write-Error "Missing or invalid Databricks CLI profiles: $($missingProfiles -join ', ')"
-        Write-Error "Please configure profiles (see instructions in CICD document)"
-        return $false
-    }
-    
-    Write-Success "Databricks CLI validated successfully"
-    return $true
 }
 
 # Function to setup Databricks integration

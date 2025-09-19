@@ -411,30 +411,55 @@ validate_databricks_cli() {
         return 1
     fi
     
-    # Check required profiles
-    local required_profiles=("prod" "stage" "dev")
-    local missing_profiles=()
-    
-    for profile in "${required_profiles[@]}"; do
-        if ! databricks --profile "$profile" current-user me &>/dev/null; then
-            missing_profiles+=("$profile")
+    while true; do
+        # Check required profiles
+        local required_profiles=("prod" "stage" "dev")
+        local missing_profiles=()
+        
+        for profile in "${required_profiles[@]}"; do
+            if ! databricks --profile "$profile" current-user me &>/dev/null; then
+                missing_profiles+=("$profile")
+            fi
+        done
+        
+        if [[ ${#missing_profiles[@]} -eq 0 ]]; then
+            log_success "Databricks CLI validated successfully"
+            return 0
+        fi
+        
+        # Profiles failed - check if it's a network connectivity issue
+        log_warning "Failed to validate Databricks CLI profiles: ${missing_profiles[*]}"
+        log "This could be due to network connectivity issues."
+        
+        read -p "Are you connected to Medtronic's network or VPN? (y/n): " network_connected
+        
+        if [[ "$network_connected" == "y" || "$network_connected" == "Y" ]]; then
+            # User claims to be connected - show configuration error
+            log_error "Missing or invalid Databricks CLI profiles: ${missing_profiles[*]}"
+            log_error "Please configure profiles (see instructions in CICD document)"
+            return 1
+        else
+            # User not connected - offer to retry
+            log_warning "Please connect to Medtronic's network or VPN to access Databricks workspaces."
+            log "Production and staging Databricks workspaces require network connectivity."
+            
+            read -p "After connecting, would you like to try again? (y/n): " try_again
+            
+            if [[ "$try_again" != "y" && "$try_again" != "Y" ]]; then
+                log_warning "Databricks CLI validation skipped due to network connectivity."
+                return 1
+            fi
+            
+            log "Retrying Databricks CLI validation..."
+            # Continue the while loop to retry
         fi
     done
-    
-    if [[ {% raw %}${#missing_profiles[@]}{% endraw %} -gt 0 ]]; then
-        log_error "Missing or invalid Databricks CLI profiles: ${missing_profiles[*]}"
-        log_error "Please configure profiles (see instructions in CICD document)"
-        return 1
-    fi
-    
-    log_success "Databricks CLI validated successfully"
-    return 0
 }
 
 # Function to setup Databricks integration
 setup_databricks() {
     log "Setting up Databricks integration..."
-    
+{{ ... }}
     if ! validate_databricks_cli; then
         return 1
     fi
