@@ -91,11 +91,11 @@ function Test-AzureCli {
     try {
         $null = az account show 2>$null
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "Not logged in to Azure CLI. Please run: az login --allow-no-subscriptions"
+            Write-Error "Not logged in to Azure CLI. Please run: az login"
             return $false
         }
     } catch {
-        Write-Error "Not logged in to Azure CLI. Please run: az login --allow-no-subscriptions"
+        Write-Error "Not logged in to Azure CLI. Please run: az login"
         return $false
     }
     
@@ -455,7 +455,7 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
                 throw "Failed to use database $db"
             }
         } catch {
-            Write-Error "Failed to use database $db"
+            Write-Error "Failed to use database $db: $_"
             Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
             return $false
         }
@@ -479,7 +479,7 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
                 throw "Failed to grant privileges"
             }
         } catch {
-            Write-Error "Failed to grant privileges on schema $db.$script:REPO_NAME to role $role"
+            Write-Error "Failed to grant privileges on schema $db.$script:REPO_NAME to role $role: $_"
             Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
             return $false
         }
