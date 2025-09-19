@@ -421,7 +421,7 @@ validate_databricks_cli() {
         fi
     done
     
-    if [[ {% raw %}${#missing_profiles[@]}{% endraw %} -gt 0 ]]; then
+    if [[ ${#missing_profiles[@]} -gt 0 ]]; then
         log_error "Missing or invalid Databricks CLI profiles: ${missing_profiles[*]}"
         log_error "Please configure profiles (see instructions in CICD document)"
         return 1
@@ -500,7 +500,7 @@ setup_databricks() {
     done
     
     # Report results
-    if [[ {% raw %}${#failed_envs[@]}{% endraw %} -eq 0 ]]; then
+    if [[ ${#failed_envs[@]} -eq 0 ]]; then
         log_success "Databricks integration completed successfully for all environments"
         return 0
     else
@@ -549,17 +549,17 @@ echo
 log "Integration Status:"
 if [[ "$setupSnowflake" == "y" || "$setupSnowflake" == "Y" ]]; then
     if [[ "$snowflake_success" == "true" ]]; then
-        log_success "✓ Snowflake integration completed successfully"
+        log_success "Snowflake integration completed successfully"
     else
-        log_error "✗ Snowflake integration failed"
+        log_error "Snowflake integration failed"
     fi
 fi
 
 if [[ "$setupDatabricks" == "y" || "$setupDatabricks" == "Y" ]]; then
     if [[ "$databricks_success" == "true" ]]; then
-        log_success "✓ Databricks integration completed successfully" 
+        log_success "Databricks integration completed successfully" 
     else
-        log_error "✗ Databricks integration failed"
+        log_error "Databricks integration failed"
     fi
 fi
 

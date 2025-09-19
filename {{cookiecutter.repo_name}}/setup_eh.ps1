@@ -652,17 +652,17 @@ try {
     Write-Log "Integration Status:"
     if ($setupSnowflake -eq "y" -or $setupSnowflake -eq "Y") {
         if ($snowflakeSuccess) {
-            Write-Success "✓ Snowflake integration completed successfully"
+            Write-Success "Snowflake integration completed successfully"
         } else {
-            Write-Error "✗ Snowflake integration failed"
+            Write-Error "Snowflake integration failed"
         }
     }
 
     if ($setupDatabricks -eq "y" -or $setupDatabricks -eq "Y") {
         if ($databricksSuccess) {
-            Write-Success "✓ Databricks integration completed successfully" 
+            Write-Success "Databricks integration completed successfully" 
         } else {
-            Write-Error "✗ Databricks integration failed"
+            Write-Error "Databricks integration failed"
         }
     }
 
