@@ -525,7 +525,7 @@ setup_databricks() {
     done
     
     # Report results
-    if [[ ${#failed_envs[@]} -eq 0 ]]; then
+    if [[ {% raw %}${#failed_envs[@]}{% endraw %} -eq 0 ]]; then
         log_success "Databricks integration completed successfully for all environments"
         return 0
     else
