@@ -422,7 +422,7 @@ validate_databricks_cli() {
             fi
         done
         
-        if [[ ${#missing_profiles[@]} -eq 0 ]]; then
+        if [[ {% raw %}${#missing_profiles[@]}{% endraw %} -eq 0 ]]; then
             log_success "Databricks CLI validated successfully"
             return 0
         fi
