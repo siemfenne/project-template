@@ -7,6 +7,7 @@ import sys
 
 # get the project platform from cookiecutter context
 project_platform = '{{ cookiecutter.project_platform }}'
+project_os = '{{ cookiecutter.operating_system }}'
 
 def safe_rename_folder(old_name, new_name, max_retries=3):
     """
@@ -81,14 +82,23 @@ for dir_name in dirs_to_remove:
         shutil.rmtree(dir_name)
         print(f"Removed directory {dir_name}")
 
-# Set executable permissions on shell scripts
-shell_scripts = ['setup.sh', 'setup_eh.sh']
-for script in shell_scripts:
-    if os.path.exists(script):
+if project_os == 'Windows':
+    # remove setup.sh
+    if os.path.exists('setup.sh'):
+        os.remove('setup.sh')
+        print("Removed setup.sh")
+
+elif project_os == 'macOS':
+    if os.path.exists('setup.ps1'):
+        os.remove('setup.ps1')
+        print("Removed setup.ps1")
+
+    shell_script = 'setup.sh'
+    if os.path.exists(shell_script):
         # Add execute permission for owner, group, and others
-        current_permissions = os.stat(script).st_mode
-        os.chmod(script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        print(f"Made {script} executable")
+        current_permissions = os.stat(shell_script).st_mode
+        os.chmod(shell_script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        print(f"Made {shell_script} executable")
 
 print(f"Project template configured for {project_platform}")
 print(f"You can continue connecting the project to Azure DevOps and Snowflake/Databricks using the setup.ps1 or setup.sh scripts")
