@@ -94,7 +94,7 @@ log_info "Current branch: $CURRENT_BRANCH"
 
 # Ask what to create
 echo
-log_info "What would you like to create?"
+log_info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"
 echo "1) Notebook"
 echo "2) Streamlit App"
 echo "3) Both"
@@ -203,6 +203,15 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+# Pull latest changes from remote
+log_info "Pulling latest changes from remote..."
+git pull
+if [ $? -eq 0 ]; then
+    log_success "Successfully pulled remote changes"
+else
+    log_warning "Failed to pull remote changes or no remote configured. Continuing..."
+fi
+
 # Add files
 git add .
 if [ $? -eq 0 ]; then
@@ -240,6 +249,48 @@ if ! command -v snow &> /dev/null; then
     exit 1
 fi
 
+# Prompt for Snowflake passphrase with validation
+passphrase=""
+max_attempts=3
+attempt=1
+
+log_info "Please provide your Snowflake private key passphrase to authenticate..."
+
+while [[ $attempt -le $max_attempts ]]; do
+    read -s -p "Enter Snowflake private key passphrase (attempt $attempt/$max_attempts): " passphrase
+    echo
+    
+    if [[ -z "$passphrase" ]]; then
+        log_warning "Passphrase cannot be empty"
+        attempt=$((attempt + 1))
+        continue
+    fi
+    
+    # Test the passphrase by exporting it and testing connection
+    export PRIVATE_KEY_PASSPHRASE="$passphrase"
+    
+    # Test connection with the passphrase
+    log_info "Testing Snowflake connection with provided passphrase..."
+    if snow connection test -c service_principal &>/dev/null; then
+        log_success "Snowflake authentication successful"
+        break
+    else
+        log_error "Invalid passphrase or connection failed"
+        log_error "Please check that 'service_principal' connection is configured correctly"
+        unset PRIVATE_KEY_PASSPHRASE
+        attempt=$((attempt + 1))
+        
+        if [[ $attempt -le $max_attempts ]]; then
+            log_warning "Please try again..."
+        fi
+    fi
+done
+
+if [[ $attempt -gt $max_attempts ]]; then
+    log_error "Maximum passphrase attempts exceeded. Exiting."
+    exit 1
+fi
+
 # Git fetch in Snowflake
 log_info "Fetching git repository in Snowflake..."
 SNOW_FETCH_CMD="snow git fetch \"EMEA_UTILITY_DB.GIT_REPOSITORIES.${REPO_NAME}\" --connection service_principal"
@@ -249,6 +300,7 @@ if eval "$SNOW_FETCH_CMD"; then
     log_success "Git repository fetched in Snowflake"
 else
     log_error "Failed to fetch git repository in Snowflake"
+    unset PRIVATE_KEY_PASSPHRASE
     exit 1
 fi
 
@@ -258,7 +310,6 @@ if [ "$CREATE_NOTEBOOK" = true ]; then
     log_info "Creating notebook in Snowflake..."
     
     # Construct the full repo path for notebooks
-    RELATIVE_PATH=$(cd notebooks && pwd | sed "s|$(dirname $(pwd))/||")
     FULL_REPO_PATH="@\"EMEA_UTILITY_DB\".\"GIT_REPOSITORIES\".\"${REPO_NAME}\"/branches/${CURRENT_BRANCH}/notebooks/"
     
     CREATE_NOTEBOOK_CMD="CREATE OR REPLACE NOTEBOOK IDENTIFIER('\"DEV_GR_AI_DB\".\"${REPO_NAME}\".\"${NOTEBOOK_NAME}\"')
@@ -308,6 +359,9 @@ QUERY_WAREHOUSE = 'NPRD_ANALYTICS_WH';"
         log_error "Failed to create Streamlit app in Snowflake"
     fi
 fi
+
+# Clean up sensitive environment variable
+unset PRIVATE_KEY_PASSPHRASE
 
 echo
 log_success "All operations completed successfully!"
