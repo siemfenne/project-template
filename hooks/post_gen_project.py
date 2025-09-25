@@ -87,18 +87,29 @@ if project_os == 'Windows':
     if os.path.exists('setup.sh'):
         os.remove('setup.sh')
         print("Removed setup.sh")
+    
+    # remove create.ps1
+    if os.path.exists('create.sh'):
+        os.remove('create.sh')
+        print("Removed create.sh")
 
 elif project_os == 'macOS':
     if os.path.exists('setup.ps1'):
         os.remove('setup.ps1')
         print("Removed setup.ps1")
+    
+    # remove create.ps1
+    if os.path.exists('create.ps1'):
+        os.remove('create.ps1')
+        print("Removed create.ps1")
 
-    shell_script = 'setup.sh'
-    if os.path.exists(shell_script):
-        # Add execute permission for owner, group, and others
-        current_permissions = os.stat(shell_script).st_mode
-        os.chmod(shell_script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        print(f"Made {shell_script} executable")
+    shell_scripts = ['setup.sh', 'create.sh']
+    for shell_script in shell_scripts:
+        if os.path.exists(shell_script):
+            # Add execute permission for owner, group, and others
+            current_permissions = os.stat(shell_script).st_mode
+            os.chmod(shell_script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            print(f"Made {shell_script} executable")
 
 print(f"Project template configured for {project_platform}")
 print(f"You can continue connecting the project to Azure DevOps and Snowflake/Databricks using the setup.ps1 or setup.sh scripts")
