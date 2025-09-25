@@ -241,7 +241,7 @@ fi
 
 # Snowflake operations
 echo
-log_info "❄️  Performing Snowflake operations..."
+log_info "Performing Snowflake operations..."
 
 # Check if snowflake CLI is available
 if ! command -v snow &> /dev/null; then
@@ -367,9 +367,9 @@ echo
 log_success "All operations completed successfully!"
 echo
 log_info "Summary of created objects:"
-[ "$CREATE_NOTEBOOK" = true ] && log_info "  • Notebook: notebooks/${NOTEBOOK_NAME}.ipynb"
-[ "$CREATE_NOTEBOOK" = true ] && log_info "  • Snowflake Notebook: DEV_GR_AI_DB.${REPO_NAME}.${NOTEBOOK_NAME}"
-[ "$CREATE_STREAMLIT" = true ] && log_info "  • Streamlit App: streamlit/${STREAMLIT_NAME}/streamlit_app.py"
-[ "$CREATE_STREAMLIT" = true ] && log_info "  • Snowflake Streamlit: DEV_GR_AI_DB.${REPO_NAME}.${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
+[ "$CREATE_NOTEBOOK" = true ] && log_info "  - Notebook: notebooks/${NOTEBOOK_NAME}.ipynb"
+[ "$CREATE_NOTEBOOK" = true ] && log_info "  - Snowflake Notebook: DEV_GR_AI_DB.${REPO_NAME}.${NOTEBOOK_NAME}"
+[ "$CREATE_STREAMLIT" = true ] && log_info "  - Streamlit App: streamlit/${STREAMLIT_NAME}/streamlit_app.py"
+[ "$CREATE_STREAMLIT" = true ] && log_info "  - Snowflake Streamlit: DEV_GR_AI_DB.${REPO_NAME}.${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
 echo
 log_info "You can now start developing your new files!"
