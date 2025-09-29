@@ -62,7 +62,9 @@ if project_platform == 'Snowflake':
 elif project_platform == 'Databricks':
     # remove Snowflake-specific files and directories
     files_to_remove = [
-        'azure-pipeline-sf.yml'
+        'azure-pipeline-sf.yml',
+        'create.sh',
+        'create.ps1'
     ]
     dirs_to_remove = [
         '.snowflake',
