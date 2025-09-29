@@ -122,6 +122,17 @@ try {
 }
 Write-Info "Current branch: $CURRENT_BRANCH"
 
+# Check if we're on the dev branch
+if ($CURRENT_BRANCH -ne "dev") {
+    Write-Host ""
+    Write-Error "This script can only be run on the 'dev' branch"
+    Write-Error "Current branch: $CURRENT_BRANCH"
+    Write-Info "Please switch to the 'dev' branch first:"
+    Write-Info "  git checkout dev"
+    Write-Host ""
+    exit 1
+}
+
 # Ask what to create
 Write-Host ""
 Write-Info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"

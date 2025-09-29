@@ -92,6 +92,17 @@ log_info "Repository: $REPO_NAME"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
 log_info "Current branch: $CURRENT_BRANCH"
 
+# Check if we're on the dev branch
+if [ "$CURRENT_BRANCH" != "dev" ]; then
+    echo
+    log_error "This script can only be run on the 'dev' branch"
+    log_error "Current branch: $CURRENT_BRANCH"
+    log_info "Please switch to the 'dev' branch first:"
+    log_info "  git checkout dev"
+    echo
+    exit 1
+fi
+
 # Ask what to create
 echo
 log_info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"
@@ -241,7 +252,7 @@ fi
 
 # Snowflake operations
 echo
-log_info "Performing Snowflake operations..."
+log_info "❄️  Performing Snowflake operations..."
 
 # Check if snowflake CLI is available
 if ! command -v snow &> /dev/null; then
@@ -367,9 +378,9 @@ echo
 log_success "All operations completed successfully!"
 echo
 log_info "Summary of created objects:"
-[ "$CREATE_NOTEBOOK" = true ] && log_info "  - Notebook: notebooks/${NOTEBOOK_NAME}.ipynb"
-[ "$CREATE_NOTEBOOK" = true ] && log_info "  - Snowflake Notebook: DEV_GR_AI_DB.${REPO_NAME}.${NOTEBOOK_NAME}"
-[ "$CREATE_STREAMLIT" = true ] && log_info "  - Streamlit App: streamlit/${STREAMLIT_NAME}/streamlit_app.py"
-[ "$CREATE_STREAMLIT" = true ] && log_info "  - Snowflake Streamlit: DEV_GR_AI_DB.${REPO_NAME}.${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
+[ "$CREATE_NOTEBOOK" = true ] && log_info "  • Notebook: notebooks/${NOTEBOOK_NAME}.ipynb"
+[ "$CREATE_NOTEBOOK" = true ] && log_info "  • Snowflake Notebook: DEV_GR_AI_DB.${REPO_NAME}.${NOTEBOOK_NAME}"
+[ "$CREATE_STREAMLIT" = true ] && log_info "  • Streamlit App: streamlit/${STREAMLIT_NAME}/streamlit_app.py"
+[ "$CREATE_STREAMLIT" = true ] && log_info "  • Snowflake Streamlit: DEV_GR_AI_DB.${REPO_NAME}.${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
 echo
 log_info "You can now start developing your new files!"
