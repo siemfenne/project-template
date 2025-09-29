@@ -87,14 +87,16 @@ The template automatically configures your project based on the selected platfor
 #### When `operating_system = "Windows"`:
 ```
 ├── setup.ps1                    # Windows PowerShell setup script
+├── create.ps1                   # PowerShell script to create notebooks/Streamlit apps
 ```
-*Note: Unix setup script (`setup.sh`) is automatically removed.*
+*Note: Unix setup script (`setup.sh`) and create script (`create.sh`) are automatically removed.*
 
 #### When `operating_system = "macOS"`:
 ```
-├── setup.sh                     # Unix/macOS setup script  
+├── setup.sh                     # Unix/macOS setup script
+├── create.sh                    # Bash script to create notebooks/Streamlit apps
 ```
-*Note: Windows setup script (`setup.ps1`) is automatically removed.*
+*Note: Windows setup script (`setup.ps1`) and create script (`create.ps1`) are automatically removed.*
 
 ### Dependency Management Files
 
@@ -142,30 +144,34 @@ This will:
 
 **Important**: When you choose to link the repository to Snowflake, you will be prompted to provide a private key passphrase. Here you have to insert the passphrase of the Service Principal. Please ask Ronald to pass it to you.
 
-### 2. Using Makefile (Alternative)
+### 2. Create Scripts - Adding Notebooks and Streamlit Apps
 
-Alternatively, use the Makefile to automatically create an Azure DevOps repository and set up branching:
+Use the create scripts to add new notebooks and Streamlit applications with automatic git and Snowflake integration.
 
+**For Windows:**
+```powershell
+.\create.ps1
+```
+
+**For macOS/Linux:**
 ```bash
-make init-repo
+./create.sh
 ```
 
 This will:
-- Create a new Azure DevOps repository
-- Initialize git with initial commit
-- Create and push `main`, `stage`, and `dev` branches
-- Set up remote origin
+- Prompt for notebook/Streamlit app creation choice
+- Generate empty Jupyter notebooks (`.ipynb`) in `notebooks/` directory
+- Create Streamlit app templates (`streamlit_app.py`) in `streamlit/` directory
+- Pull latest changes from remote repository
+- Add new files to git staging and commit with custom message
+- Push changes to remote repository
+- Authenticate with Snowflake using service principal private key
+- Fetch latest git repository state in Snowflake
+- Create notebook objects in `DEV_GR_AI_DB.{repo_name}.{notebook_name}`
+- Create Streamlit app objects in `DEV_GR_AI_DB.{repo_name}.{streamlit_name}`
+- Add live versions to created notebooks
 
-### 3. Available Make Commands
-
-| Command | Description |
-|---------|-------------|
-| `make test` | Run basic project tests |
-| `make init-repo` | Create Azure DevOps repo and initialize git |
-| `make full` | Complete project setup |
-| `make snowflake` | Snowflake-specific setup |
-| `make databricks` | Databricks-specific setup |
-| `make feature-branch` | Create a new feature branch |
+**Important**: You will be prompted to provide your Snowflake private key passphrase. Please ask Ronald to pass it to you.
 
 ## Branching Strategy
 
