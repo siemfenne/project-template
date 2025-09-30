@@ -361,37 +361,35 @@ CREATE GIT REPOSITORY IF NOT EXISTS $REPO_NAME
     
     log_success "Git repository object created in Snowflake"
     
-    # Setup schemas in different environments
-    local databases=("PROD_GR_AI_DB" "STAGE_GR_AI_DB" "DEV_GR_AI_DB")
+    # Setup schema in DEV environment only
+    # Stage and Prod schemas will be created automatically on deployment via deploy_sql.py
+    local database="DEV_GR_AI_DB"
     local role="GR_AI_ENGINEER"
     
-    log "Creating schemas and assigning grants in each environment database..."
-    for db in "${databases[@]}"; do
-        log "Initializing schema and grants in $db..."
-        
-        # Use database
-        if ! snow sql -c service_principal --query "USE DATABASE $db"; then
-            log_error "Failed to use database $db"
-            unset PRIVATE_KEY_PASSPHRASE
-            return 1
-        fi
-        
-        # Create schema
-        if ! snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $db.$REPO_NAME"; then
-            log_error "Failed to create schema $db.$REPO_NAME"
-            unset PRIVATE_KEY_PASSPHRASE
-            return 1
-        fi
-        
-        # Grant privileges
-        if ! snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $db.$REPO_NAME TO ROLE $role"; then
-            log_error "Failed to grant privileges on schema $db.$REPO_NAME to role $role"
-            unset PRIVATE_KEY_PASSPHRASE
-            return 1
-        fi
-        
-        log_success "Schema and grants configured for $db"
-    done
+    log "Creating schema and assigning grants in $database..."
+    
+    # Use database
+    if ! snow sql -c service_principal --query "USE DATABASE $database"; then
+        log_error "Failed to use database $database"
+        unset PRIVATE_KEY_PASSPHRASE
+        return 1
+    fi
+    
+    # Create schema
+    if ! snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $database.$REPO_NAME"; then
+        log_error "Failed to create schema $database.$REPO_NAME"
+        unset PRIVATE_KEY_PASSPHRASE
+        return 1
+    fi
+    
+    # Grant privileges
+    if ! snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $database.$REPO_NAME TO ROLE $role"; then
+        log_error "Failed to grant privileges on schema $database.$REPO_NAME to role $role"
+        unset PRIVATE_KEY_PASSPHRASE
+        return 1
+    fi
+    
+    log_success "Schema and grants configured for $database"
     
     # Clean up sensitive environment variable
     unset PRIVATE_KEY_PASSPHRASE
@@ -499,8 +497,9 @@ setup_databricks() {
         esac
     }
     
-    # Setup repository in each environment
-    local environments=("PROD" "STAGE" "DEV")
+    # Setup repository in DEV environment only
+    # Stage and Prod workspace connections will be created automatically on deployment via azure-pipeline-dbx.yml
+    local environments=("DEV")
     local failed_envs=()
     
     for env in "${environments[@]}"; do

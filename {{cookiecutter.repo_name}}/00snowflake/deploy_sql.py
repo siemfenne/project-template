@@ -15,6 +15,7 @@ deploy_lines = []
 use_lines = [
     f"USE DATABASE {database};\n",
     f"CREATE SCHEMA IF NOT EXISTS {schema};\n",
+    f"GRANT ALL PRIVILEGES ON SCHEMA {database}.{schema} TO ROLE GR_AI_ENGINEER;\n",
     f"USE SCHEMA {schema};\n\n"
 ]
 deploy_lines.extend(use_lines)

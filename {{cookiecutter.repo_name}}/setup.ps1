@@ -440,52 +440,50 @@ CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
     
     Write-Success "Git repository object created in Snowflake"
     
-    # Setup schemas in different environments
-    $databases = @("PROD_GR_AI_DB", "STAGE_GR_AI_DB", "DEV_GR_AI_DB")
+    # Setup schema in DEV environment only
+    # Stage and Prod schemas will be created automatically on deployment via deploy_sql.py
+    $database = "DEV_GR_AI_DB"
     $role = "GR_AI_ENGINEER"
     
-    Write-Log "Creating schemas and assigning grants in each environment database..."
-    foreach ($db in $databases) {
-        Write-Log "Initializing schema and grants in $db..."
-        
-        # Use database
-        try {
-            snow sql -c service_principal --query "USE DATABASE $db"
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to use database $db"
-            }
-        } catch {
-            Write-Error "Failed to use database $db"
-            Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
-            return $false
+    Write-Log "Creating schema and assigning grants in $database..."
+    
+    # Use database
+    try {
+        snow sql -c service_principal --query "USE DATABASE $database"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to use database $database"
         }
-        
-        # Create schema
-        try {
-            snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $db.$script:REPO_NAME"
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to create schema"
-            }
-        } catch {
-            Write-Error "Failed to create schema $db.$script:REPO_NAME"
-            Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
-            return $false
-        }
-        
-        # Grant privileges
-        try {
-            snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $db.$script:REPO_NAME TO ROLE $role"
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to grant privileges"
-            }
-        } catch {
-            Write-Error "Failed to grant privileges on schema $db.$script:REPO_NAME to role $role"
-            Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
-            return $false
-        }
-        
-        Write-Success "Schema and grants configured for $db"
+    } catch {
+        Write-Error "Failed to use database $database"
+        Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
+        return $false
     }
+    
+    # Create schema
+    try {
+        snow sql -c service_principal --query "CREATE SCHEMA IF NOT EXISTS $database.$script:REPO_NAME"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to create schema"
+        }
+    } catch {
+        Write-Error "Failed to create schema $database.$script:REPO_NAME"
+        Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
+        return $false
+    }
+    
+    # Grant privileges
+    try {
+        snow sql -c service_principal --query "GRANT ALL PRIVILEGES ON SCHEMA $database.$script:REPO_NAME TO ROLE $role"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to grant privileges"
+        }
+    } catch {
+        Write-Error "Failed to grant privileges on schema $database.$script:REPO_NAME to role $role"
+        Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
+        return $false
+    }
+    
+    Write-Success "Schema and grants configured for $database"
     
     # Clean up sensitive environment variable
     Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
@@ -591,8 +589,9 @@ function Set-DatabricksIntegration {
         }
     }
     
-    # Setup repository in each environment
-    $environments = @("PROD", "STAGE", "DEV")
+    # Setup repository in DEV environment only
+    # Stage and Prod workspace connections will be created automatically on deployment via azure-pipeline-dbx.yml
+    $environments = @("DEV")
     $failedEnvs = @()
     
     foreach ($env in $environments) {

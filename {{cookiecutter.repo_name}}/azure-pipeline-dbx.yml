@@ -7,9 +7,47 @@ pool:
 
 variables:
   DATABRICKS_CLI_DIR: 'D:\digic_gr_ai\databrickscli'
+  # These variables must be set in the Azure DevOps pipeline:
+  # - REPO_NAME: The repository name (e.g., P001)
+  # - MEDTRONIC_USERNAME: The Medtronic username (e.g., fennes2)
+  # - DATABRICKS_STAGE_TOKEN: Token for stage environment (secret)
+  # - DATABRICKS_PROD_TOKEN: Token for prod environment (secret)
 
 steps:
   - checkout: self
+
+  # validate required pipeline variables
+  - powershell: |
+      Write-Host "Validating required pipeline variables..."
+      
+      $missingVars = @()
+      
+      if ([string]::IsNullOrWhiteSpace("$(REPO_NAME)")) {
+        $missingVars += "REPO_NAME"
+      }
+      
+      if ([string]::IsNullOrWhiteSpace("$(MEDTRONIC_USERNAME)")) {
+        $missingVars += "MEDTRONIC_USERNAME"
+      }
+      
+      if ([string]::IsNullOrWhiteSpace("$(DATABRICKS_STAGE_TOKEN)")) {
+        $missingVars += "DATABRICKS_STAGE_TOKEN"
+      }
+      
+      if ([string]::IsNullOrWhiteSpace("$(DATABRICKS_PROD_TOKEN)")) {
+        $missingVars += "DATABRICKS_PROD_TOKEN"
+      }
+      
+      if ($missingVars.Count -gt 0) {
+        Write-Error "Missing required pipeline variables: $($missingVars -join ', ')"
+        Write-Error "Please configure these variables in Azure DevOps Pipeline settings"
+        exit 1
+      }
+      
+      Write-Host "All required variables are set"
+      Write-Host "Repository: $(REPO_NAME)"
+      Write-Host "Username: $(MEDTRONIC_USERNAME)"
+    displayName: 'Validate pipeline variables'
 
   # setup variables once
   - powershell: |
@@ -20,11 +58,13 @@ steps:
         Write-Host "Using stage environment"
         Write-Output "##vso[task.setvariable variable=BUNDLE_TARGET]stage"
         Write-Output "##vso[task.setvariable variable=DATABRICKS_TOKEN;issecret=true]$(DATABRICKS_STAGE_TOKEN)"
+        Write-Output "##vso[task.setvariable variable=DATABRICKS_HOST]https://medtronic-ml-globalregionsit-stage.cloud.databricks.com"
       }
       elseif ("$(Build.SourceBranchName)" -eq "main") {
         Write-Host "Using prod environment"
         Write-Output "##vso[task.setvariable variable=BUNDLE_TARGET]prod"
         Write-Output "##vso[task.setvariable variable=DATABRICKS_TOKEN;issecret=true]$(DATABRICKS_PROD_TOKEN)"
+        Write-Output "##vso[task.setvariable variable=DATABRICKS_HOST]https://medtronic-ml-globalregionsit-prod.cloud.databricks.com"
       }
       else {
         Write-Host "Not a deployment branch"
@@ -32,6 +72,45 @@ steps:
       }
     name: setup
     displayName: 'Setup environment variables'
+
+  # ensure git repository connection exists in target workspace
+  - powershell: |
+      $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
+      
+      # Get repository name from Build.Repository.Name or set manually
+      $repoName = "$(REPO_NAME)"
+      $repoPath = "/Workspace/Users/$(MEDTRONIC_USERNAME)@medtronic.com/$repoName"
+      $repoUrl = "https://dev.azure.com/MedtronicBI/DigIC%20GR%20AI/_git/$repoName"
+      
+      Write-Host "Checking if repository exists at: $repoPath"
+      
+      # Check if repo exists
+      $repoExists = $false
+      try {
+        databricks.exe repos get "$repoPath" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+          $repoExists = $true
+          Write-Host "Repository already exists at $repoPath"
+        }
+      } catch {
+        Write-Host "Repository does not exist yet"
+      }
+      
+      # Create repo if it doesn't exist
+      if (-not $repoExists) {
+        Write-Host "Creating repository connection..."
+        databricks.exe repos create "$repoUrl" azureDevOpsServices --path "$repoPath"
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "Successfully created repository at $repoPath"
+        } else {
+          Write-Error "Failed to create repository"
+          exit 1
+        }
+      }
+    displayName: 'Ensure Git repository connection exists'
+    env:
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
 
   # validate DAB bundle
   - powershell: |
