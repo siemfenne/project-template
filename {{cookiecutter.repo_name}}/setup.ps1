@@ -504,40 +504,34 @@ function Test-DatabricksCli {
     }
     
     while ($true) {
-        # Check required profiles
-        $requiredProfiles = @("prod", "stage", "dev")
-        $missingProfiles = @()
+        # Check required profile (only DEV needed for setup)
+        # Stage and Prod profiles are not needed as connections are created via pipeline
+        $requiredProfile = "dev"
         
-        foreach ($profile in $requiredProfiles) {
-            try {
-                # Capture output and suppress display
-                $output = databricks --profile $profile current-user me 2>&1 | Out-String
-                $exitCode = $LASTEXITCODE
-                
-                # Check if command succeeded
-                if ($exitCode -ne 0 -or [string]::IsNullOrWhiteSpace($output) -or $output -match "Error") {
-                    $missingProfiles += $profile
-                }
-            } catch {
-                $missingProfiles += $profile
+        try {
+            # Capture output and suppress display
+            $output = databricks --profile $requiredProfile current-user me 2>&1 | Out-String
+            $exitCode = $LASTEXITCODE
+            
+            # Check if command succeeded
+            if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($output) -and $output -notmatch "Error") {
+                Write-Success "Databricks CLI validated successfully"
+                return $true
             }
+        } catch {
+            # Validation failed
         }
         
-        if ($missingProfiles.Count -eq 0) {
-            Write-Success "Databricks CLI validated successfully"
-            return $true
-        }
-        
-        # Profiles failed - check if it's a network connectivity issue
-        Write-Warning "Failed to validate Databricks CLI profiles: $($missingProfiles -join ', ')"
+        # Profile failed - check if it's a network connectivity issue
+        Write-Warning "Failed to validate Databricks CLI profile: $requiredProfile"
         Write-Warning "This could be due to network connectivity issues."
         
         $networkConnected = Read-Host "Are you connected to Medtronic's network or VPN? (y/n)"
         
         if ($networkConnected -eq "y" -or $networkConnected -eq "Y") {
             # User claims to be connected - show configuration error
-            Write-Error "Missing or invalid Databricks CLI profiles: $($missingProfiles -join ', ')"
-            Write-Error "Please configure profiles (see instructions in CICD document)"
+            Write-Error "Missing or invalid Databricks CLI profile: $requiredProfile"
+            Write-Error "Please configure the 'dev' profile (see instructions in CICD document)"
             return $false
         } else {
             # User not connected - offer to retry

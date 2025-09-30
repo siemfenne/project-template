@@ -74,19 +74,19 @@ QUERY_WAREHOUSE = '{warehouse}'
 ################ DEFINE LIST OF NOTEBOOKS TO EXECUTE  ##########################
 ################ ON DEPLOY, INCLUDING NOTEBOOK PARAMS ##########################
 ################################################################################
-execute_list = [
-    # (notebook_name, notebook_params)
-    ("DEVOPS_01_00_DATABASE_INIT", f"DATABASE={database} SCHEMA={schema}"),
-    ("DEVOPS_00_01_SCHEDULER", f"DATABASE={database} SCHEMA={schema} WAREHOUSE={warehouse}")
-]
+# execute_list = [
+#     # (notebook_name, notebook_params)
+#     ("DEVOPS_01_00_DATABASE_INIT", f"DATABASE={database} SCHEMA={schema}"),
+#     ("DEVOPS_00_01_SCHEDULER", f"DATABASE={database} SCHEMA={schema} WAREHOUSE={warehouse}")
+# ]
 
-# ################################################################################
-# ################ EXECUTE NOTEBOOKS COMMANDS ####################################
-# ################################################################################
-for notebook_name, notebook_params in execute_list:
-    deploy_lines.append(f"""
-EXECUTE NOTEBOOK IDENTIFIER('"{database}"."{schema}"."{notebook_name}"')('{notebook_params}');
-""")
+# # ################################################################################
+# # ################ EXECUTE NOTEBOOKS COMMANDS ####################################
+# # ################################################################################
+# for notebook_name, notebook_params in execute_list:
+#     deploy_lines.append(f"""
+# EXECUTE NOTEBOOK IDENTIFIER('"{database}"."{schema}"."{notebook_name}"')('{notebook_params}');
+# """)
 
 # Write the files
 with open(output_path, 'w') as f:

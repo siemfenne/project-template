@@ -433,8 +433,8 @@ validate_databricks_cli() {
         
         if [[ "$network_connected" == "y" || "$network_connected" == "Y" ]]; then
             # User claims to be connected - show configuration error
-            log_error "Missing or invalid Databricks CLI profiles: ${missing_profiles[*]}"
-            log_error "Please configure profiles (see instructions in CICD document)"
+            log_error "Missing or invalid Databricks CLI profile: $required_profile"
+            log_error "Please configure the 'dev' profile (see instructions in CICD document)"
             return 1
         else
             # User not connected - offer to retry
