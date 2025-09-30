@@ -510,8 +510,12 @@ function Test-DatabricksCli {
         
         foreach ($profile in $requiredProfiles) {
             try {
-                databricks --profile $profile current-user me 2>$null
-                if ($LASTEXITCODE -ne 0) {
+                # Capture output and suppress display
+                $output = databricks --profile $profile current-user me 2>&1 | Out-String
+                $exitCode = $LASTEXITCODE
+                
+                # Check if command succeeded
+                if ($exitCode -ne 0 -or [string]::IsNullOrWhiteSpace($output) -or $output -match "Error") {
                     $missingProfiles += $profile
                 }
             } catch {
