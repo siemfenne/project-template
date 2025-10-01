@@ -509,17 +509,28 @@ function Test-DatabricksCli {
         $requiredProfile = "dev"
         
         try {
-            # Capture output and suppress display
-            $output = databricks --profile $requiredProfile current-user me 2>&1 | Out-String
+            # Run from home directory to avoid databricks.yml bundle interference
+            $currentDir = Get-Location
+            Set-Location $env:USERPROFILE
+            
+            # Capture output and exit code properly
+            $output = databricks --profile $requiredProfile current-user me 2>&1
             $exitCode = $LASTEXITCODE
+            $outputString = $output | Out-String
+            
+            # Return to original directory
+            Set-Location $currentDir
             
             # Check if command succeeded
-            if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($output) -and $output -notmatch "Error") {
+            if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($outputString) -and $outputString -notmatch "Error") {
                 Write-Success "Databricks CLI validated successfully"
                 return $true
             }
         } catch {
-            # Validation failed
+            # Validation failed - ensure we return to original directory
+            if ($currentDir) {
+                Set-Location $currentDir
+            }
         }
         
         # Profile failed - check if it's a network connectivity issue
