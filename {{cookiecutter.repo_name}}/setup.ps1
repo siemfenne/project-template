@@ -610,8 +610,17 @@ function Set-DatabricksIntegration {
         
         # Try to create the repository with detailed error handling
         try {
+            # Run from home directory to avoid databricks.yml bundle interference
+            $currentDir = Get-Location
+            Set-Location $env:USERPROFILE
+            
             $createOutput = databricks --profile $profile repos create $script:REMOTE_URL azureDevOpsServices --path $dbx_path 2>&1
-            if ($LASTEXITCODE -eq 0) {
+            $exitCode = $LASTEXITCODE
+            
+            # Return to original directory
+            Set-Location $currentDir
+            
+            if ($exitCode -eq 0) {
                 Write-Success "Successfully linked to Databricks $env at $dbx_path"
             } else {
                 # Check if the error is because repository already exists
@@ -623,6 +632,10 @@ function Set-DatabricksIntegration {
                 }
             }
         } catch {
+            # Ensure we return to original directory
+            if ($currentDir) {
+                Set-Location $currentDir
+            }
             Write-Error "Failed to create repository in Databricks $env`: $_"
             $failedEnvs += $env
         }

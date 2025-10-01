@@ -410,12 +410,14 @@ validate_databricks_cli() {
     fi
     
     while true; do
-        # Check required profiles
-        local required_profiles=("prod" "stage" "dev")
+        # Check required profile (only DEV needed for setup)
+        # Stage and Prod profiles are not needed as connections are created via pipeline
+        local required_profiles=("dev")
         local missing_profiles=()
         
         for profile in "${required_profiles[@]}"; do
-            if ! databricks --profile "$profile" current-user me &>/dev/null; then
+            # Run from home directory to avoid databricks.yml bundle interference
+            if ! (cd "$HOME" && databricks --profile "$profile" current-user me &>/dev/null); then
                 missing_profiles+=("$profile")
             fi
         done
@@ -510,7 +512,8 @@ setup_databricks() {
         
         # Try to create the repository with detailed error handling
         local create_output
-        if create_output=$(databricks --profile "$profile" repos create "$REMOTE_URL" azureDevOpsServices --path "$dbx_path" 2>&1); then
+        # Run from home directory to avoid databricks.yml bundle interference
+        if create_output=$(cd "$HOME" && databricks --profile "$profile" repos create "$REMOTE_URL" azureDevOpsServices --path "$dbx_path" 2>&1); then
             log_success "Successfully linked to Databricks $env at $dbx_path"
         else
             # Check if the error is because repository already exists
