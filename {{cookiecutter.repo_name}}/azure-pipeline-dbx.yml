@@ -87,7 +87,7 @@ steps:
       # Check if repo exists
       $repoExists = $false
       try {
-        databricks.exe repos get "$repoPath" 2>$null
+        databricks.exe repos get "$repoPath" -t "$(BUNDLE_TARGET)" 2>$null
         if ($LASTEXITCODE -eq 0) {
           $repoExists = $true
           Write-Host "Repository already exists at $repoPath"
@@ -99,7 +99,7 @@ steps:
       # Create repo if it doesn't exist
       if (-not $repoExists) {
         Write-Host "Creating repository connection..."
-        databricks.exe repos create "$repoUrl" azureDevOpsServices --path "$repoPath"
+        databricks.exe repos create "$repoUrl" azureDevOpsServices --path "$repoPath" -t "$(BUNDLE_TARGET)"
         if ($LASTEXITCODE -eq 0) {
           Write-Host "Successfully created repository at $repoPath"
         } else {
@@ -129,9 +129,9 @@ steps:
       DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
 
   # run jobs on deploy (this runs the database-init-job job of the databricks.yml file)
-  - powershell: |
-      $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
-      databricks.exe bundle run -t "$(BUNDLE_TARGET)" database-init-job
-    displayName: 'Execute Jobs on deploy'
-    env:
-      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+  # - powershell: |
+  #     $env:PATH = "$(DATABRICKS_CLI_DIR);$(PATH)"
+  #     databricks.exe bundle run -t "$(BUNDLE_TARGET)" database-init-job                <--- change this job name to the name of the job you want to execute
+  #   displayName: 'Execute Jobs on deploy'
+  #   env:
+  #     DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
