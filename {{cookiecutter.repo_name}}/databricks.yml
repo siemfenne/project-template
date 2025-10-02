@@ -36,71 +36,7 @@ resources: # databricks resources to be created on deploy (jobs, pipelines, etc.
         timezone_id: "Europe/Amsterdam"
         pause_status: UNPAUSED
 
-    exc-model-inference-job: # job for running model inference
-      name: DEVOPSCLOUD_EXC_MODEL_INFERENCE_JOB
-      parameters:
-        - name: database
-          default: ${var.database}
-        - name: schema
-          default: ${var.schema}
-      tasks:
-        - task_key: data_preparation
-          notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb
-            base_parameters:
-              dataset_type: INFER
-          existing_cluster_id: ${var.cluster_id}
-        - task_key: model_inference # runs model inference
-          notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_03_MODEL_INFERENCE.ipynb
-          existing_cluster_id: ${var.cluster_id}
-          depends_on:
-            - task_key: data_preparation
-        - task_key: result_sets
-          notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_04_RESULT_SETS.ipynb
-          existing_cluster_id: ${var.cluster_id}
-          depends_on:
-            - task_key: model_inference
-      schedule:
-        quartz_cron_expression: "0 0 13 ? * 1"
-        timezone_id: "Europe/Amsterdam"
-        pause_status: UNPAUSED
-
-    model-retraining-job: # job to retrain the model
-      name: DEVOPSCLOUD_EXC_MODEL_RETRAINING_JOB
-      parameters:
-        - name: database
-          default: ${var.database}
-        - name: schema
-          default: ${var.schema}
-      tasks:
-        - task_key: data_preparation_train # prepares training data
-          notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb
-            base_parameters:
-              dataset_type: TRAIN
-          existing_cluster_id: ${var.cluster_id}
-        - task_key: model_training # trains the model
-          notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_02_MODEL_TRAINING.ipynb
-          existing_cluster_id: ${var.cluster_id}
-          depends_on:
-            - task_key: data_preparation_train
-        - task_key: data_preparation_infer # prepares inference dataset post-training
-          notebook_task:
-            notebook_path: ./notebooks/DEVOPSCLOUD_01_01_DATA_PREPARATION.ipynb
-            base_parameters:
-              dataset_type: INFER
-          existing_cluster_id: ${var.cluster_id}
-          depends_on:
-            - task_key: model_training
-      schedule:
-        quartz_cron_expression: "0 0 13 ? * 1"
-        timezone_id: "Europe/Amsterdam"
-        pause_status: UNPAUSED
-
-    # one-time job that is executed on deploy to initialize tables and views in the database
+    # ONE-TIME JOB that is executed on deploy to initialize tables and views in the database
     database-init-job: # IMPORTANT: This will only be executed if you define it in the azure-pipelines.yml file (see databricks.exe bundle run -t $env:BUNDLE_TARGET database-init-job)
       name: DEVOPSCLOUD_DATABASE_INIT
       parameters:
