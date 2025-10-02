@@ -1,6 +1,8 @@
 trigger:
   branches:
-    include: [stage, main]
+    include:
+      - stage
+      - main
 
 pool:
   name: 'GR_CLOUD_MEGA'
