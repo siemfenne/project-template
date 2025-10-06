@@ -7,6 +7,10 @@
       "Snowflake",
       "Databricks"
     ],
+    "development": [
+      "Local",
+      "Cloud"
+    ],
     "python_version": "Python version",
     "environment_manager": [
       "virtualenv",

@@ -7,6 +7,7 @@ import sys
 
 # get the project platform from cookiecutter context
 project_platform = '{{ cookiecutter.project_platform }}'
+project_development = '{{ cookiecutter.development }}'
 project_os = '{{ cookiecutter.operating_system }}'
 
 def safe_rename_folder(old_name, new_name, max_retries=3):
@@ -58,7 +59,9 @@ if project_platform == 'Snowflake':
         'azure-pipeline-dbx.yml',
         'databricks.yml'
     ]
-    dirs_to_remove = []
+    dirs_to_remove = [
+        'notebooks/requirements'
+    ]
 elif project_platform == 'Databricks':
     # remove Snowflake-specific files and directories
     files_to_remove = [
@@ -71,6 +74,11 @@ elif project_platform == 'Databricks':
         # '00snowflake',  # fallback in case rename didn't happen
         'streamlit'
     ]
+    if project_development == 'Local':
+        files_to_remove.append('requirements.txt')
+        files_to_remove.append('pyproject.toml')
+        files_to_remove.append('environment.yml')
+        files_to_remove.append('Pipfile')
 
 # remove unwanted files
 for file_name in files_to_remove:
