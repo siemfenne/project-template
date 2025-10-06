@@ -75,10 +75,10 @@ elif project_platform == 'Databricks':
         'streamlit'
     ]
     if project_development == 'Local':
-        files_to_remove.append('requirements.txt')
-        files_to_remove.append('pyproject.toml')
-        files_to_remove.append('environment.yml')
-        files_to_remove.append('Pipfile')
+        files_to_remove.append('notebooks/requirements.txt')
+        files_to_remove.append('notebooks/pyproject.toml')
+        files_to_remove.append('notebooks/environment.yml')
+        files_to_remove.append('notebooks/Pipfile')
 
 # remove unwanted files
 for file_name in files_to_remove:
