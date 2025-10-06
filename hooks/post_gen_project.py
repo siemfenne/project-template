@@ -93,26 +93,29 @@ for dir_name in dirs_to_remove:
         print(f"Removed directory {dir_name}")
 
 if project_os == 'Windows':
-    # remove setup.sh
-    if os.path.exists('setup.sh'):
-        os.remove('setup.sh')
-        print("Removed setup.sh")
-    
-    # remove create.ps1
-    if os.path.exists('create.sh'):
-        os.remove('create.sh')
-        print("Removed create.sh")
+    files_to_remove = [
+        'setup.sh',
+        'create.sh',
+        'notebooks/requirements/dbx-runtime-17.2-macos.txt'
+    ]
 
+    for file_name in files_to_remove:
+        if os.path.exists(file_name):
+            os.remove(file_name)
+            print(f"Removed {file_name}")
+    
 elif project_os == 'macOS':
-    if os.path.exists('setup.ps1'):
-        os.remove('setup.ps1')
-        print("Removed setup.ps1")
+    files_to_remove = [
+        'setup.ps1',
+        'create.ps1',
+        'notebooks/requirements/dbx-runtime-17.2-windows.txt'
+    ]
     
-    # remove create.ps1
-    if os.path.exists('create.ps1'):
-        os.remove('create.ps1')
-        print("Removed create.ps1")
-
+    for file_name in files_to_remove:
+        if os.path.exists(file_name):
+            os.remove(file_name)
+            print(f"Removed {file_name}")
+    
     shell_scripts = ['setup.sh', 'create.sh']
     for shell_script in shell_scripts:
         if os.path.exists(shell_script):
