@@ -81,7 +81,7 @@ validate_name() {
 }
 
 # Main script
-log_info "Create New Notebook or Streamlit App"
+log_info "Create or Connect Notebook / Streamlit App"
 echo
 
 # Get repo name (current directory name)
@@ -103,9 +103,34 @@ if [ "$CURRENT_BRANCH" != "dev" ]; then
     exit 1
 fi
 
-# Ask what to create
+# Ask whether to create new or connect existing
 echo
-log_info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"
+log_info "Would you like to create a new file or connect an existing one?"
+echo "1) Create new (creates the file and connects to Azure DevOps + Snowflake)"
+echo "2) Connect existing (file already exists locally, just connect to Azure DevOps + Snowflake)"
+read -p "Enter your choice (1-2): " mode_choice
+
+CREATE_NEW=false
+case $mode_choice in
+    1)
+        CREATE_NEW=true
+        ;;
+    2)
+        CREATE_NEW=false
+        ;;
+    *)
+        log_error "Invalid choice. Exiting."
+        exit 1
+        ;;
+esac
+
+# Ask what type to create/connect
+echo
+if [ "$CREATE_NEW" = true ]; then
+    log_info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"
+else
+    log_info "What would you like to connect? (Your current branch: $CURRENT_BRANCH)"
+fi
 echo "1) Notebook"
 echo "2) Streamlit App"
 echo "3) Both"
@@ -162,8 +187,13 @@ fi
 
 echo
 log_info "Summary:"
-[ "$CREATE_NOTEBOOK" = true ] && log_info "  - Will create notebook: ${NOTEBOOK_NAME}.ipynb"
-[ "$CREATE_STREAMLIT" = true ] && log_info "  - Will create Streamlit app: $STREAMLIT_NAME"
+if [ "$CREATE_NEW" = true ]; then
+    [ "$CREATE_NOTEBOOK" = true ] && log_info "  - Will create notebook: ${NOTEBOOK_NAME}.ipynb"
+    [ "$CREATE_STREAMLIT" = true ] && log_info "  - Will create Streamlit app: $STREAMLIT_NAME"
+else
+    [ "$CREATE_NOTEBOOK" = true ] && log_info "  - Will connect existing notebook: ${NOTEBOOK_NAME}.ipynb"
+    [ "$CREATE_STREAMLIT" = true ] && log_info "  - Will connect existing Streamlit app: $STREAMLIT_NAME"
+fi
 log_info "  - Commit message: $COMMIT_MESSAGE"
 echo
 
@@ -173,35 +203,61 @@ if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Create files
+# Create or verify files
 echo
-log_info "Creating files..."
+if [ "$CREATE_NEW" = true ]; then
+    log_info "Creating files..."
+else
+    log_info "Verifying existing files..."
+fi
 
 if [ "$CREATE_NOTEBOOK" = true ]; then
-    # Create notebooks directory if it doesn't exist
-    mkdir -p notebooks
-    
     NOTEBOOK_PATH="notebooks/${NOTEBOOK_NAME}.ipynb"
-    if [ -f "$NOTEBOOK_PATH" ]; then
-        log_warning "Notebook $NOTEBOOK_PATH already exists. Overwriting..."
-    fi
     
-    create_notebook_template "$NOTEBOOK_PATH" "$NOTEBOOK_NAME"
-    log_success "Created notebook: $NOTEBOOK_PATH"
+    if [ "$CREATE_NEW" = true ]; then
+        # Create notebooks directory if it doesn't exist
+        mkdir -p notebooks
+        
+        if [ -f "$NOTEBOOK_PATH" ]; then
+            log_warning "Notebook $NOTEBOOK_PATH already exists. Overwriting..."
+        fi
+        
+        create_notebook_template "$NOTEBOOK_PATH" "$NOTEBOOK_NAME"
+        log_success "Created notebook: $NOTEBOOK_PATH"
+    else
+        # Verify notebook exists
+        if [ ! -f "$NOTEBOOK_PATH" ]; then
+            log_error "Notebook $NOTEBOOK_PATH does not exist!"
+            log_error "Please make sure the file exists or choose 'Create new' instead."
+            exit 1
+        fi
+        log_success "Found existing notebook: $NOTEBOOK_PATH"
+    fi
 fi
 
 if [ "$CREATE_STREAMLIT" = true ]; then
-    # Create streamlit directory structure
     STREAMLIT_DIR="streamlit/${STREAMLIT_NAME}"
-    mkdir -p "$STREAMLIT_DIR"
-    
     STREAMLIT_PATH="${STREAMLIT_DIR}/streamlit_app.py"
-    if [ -f "$STREAMLIT_PATH" ]; then
-        log_warning "Streamlit app $STREAMLIT_PATH already exists. Overwriting..."
-    fi
     
-    create_streamlit_template "$STREAMLIT_PATH" "$STREAMLIT_NAME"
-    log_success "Created Streamlit app: $STREAMLIT_PATH"
+    if [ "$CREATE_NEW" = true ]; then
+        # Create streamlit directory structure
+        mkdir -p "$STREAMLIT_DIR"
+        
+        if [ -f "$STREAMLIT_PATH" ]; then
+            log_warning "Streamlit app $STREAMLIT_PATH already exists. Overwriting..."
+        fi
+        
+        create_streamlit_template "$STREAMLIT_PATH" "$STREAMLIT_NAME"
+        log_success "Created Streamlit app: $STREAMLIT_PATH"
+    else
+        # Verify streamlit app exists
+        if [ ! -f "$STREAMLIT_PATH" ]; then
+            log_error "Streamlit app $STREAMLIT_PATH does not exist!"
+            log_error "Please make sure the file exists or choose 'Create new' instead."
+            exit 1
+        fi
+        log_success "Found existing Streamlit app: $STREAMLIT_PATH"
+    fi
 fi
 
 # Git operations
@@ -377,10 +433,18 @@ unset PRIVATE_KEY_PASSPHRASE
 echo
 log_success "All operations completed successfully!"
 echo
-log_info "Summary of created objects:"
+if [ "$CREATE_NEW" = true ]; then
+    log_info "Summary of created objects:"
+else
+    log_info "Summary of connected objects:"
+fi
 [ "$CREATE_NOTEBOOK" = true ] && log_info "  • Notebook: notebooks/${NOTEBOOK_NAME}.ipynb"
 [ "$CREATE_NOTEBOOK" = true ] && log_info "  • Snowflake Notebook: DEV_GR_AI_DB.${REPO_NAME}.${NOTEBOOK_NAME}"
 [ "$CREATE_STREAMLIT" = true ] && log_info "  • Streamlit App: streamlit/${STREAMLIT_NAME}/streamlit_app.py"
 [ "$CREATE_STREAMLIT" = true ] && log_info "  • Snowflake Streamlit: DEV_GR_AI_DB.${REPO_NAME}.${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
 echo
-log_info "You can now start developing your new files!"
+if [ "$CREATE_NEW" = true ]; then
+    log_info "You can now start developing your new files!"
+else
+    log_info "Your existing files are now connected to Azure DevOps and Snowflake!"
+fi
