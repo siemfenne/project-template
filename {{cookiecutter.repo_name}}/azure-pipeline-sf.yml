@@ -15,9 +15,15 @@ variables:
   DEV_DB: 'DEV_GR_AI_DB' #                        
   STAGE_DB: 'STAGE_GR_AI_DB' #                    
   PROD_DB: 'PROD_GR_AI_DB' #                      
-  SCHEMA: '<SCHEMA_NAME>' #                               <-- change these according to your schema name
+  SCHEMA: '<SCHEMA_NAME>' #                             <-- change these according to your schema name
   UTILITY_DB: 'EMEA_UTILITY_DB'
   GIT_SCHEMA: 'GIT_REPOSITORIES'
+  # Container-specific variables
+  STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
+  PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
+  COMPUTE_POOL: '<COMPUTE_POOL>' #                      <-- change to your compute pool name
+  MIN_INSTANCES: '1' #                                  <-- change to your liking
+  MAX_INSTANCES: '1' #                                  <-- change to your liking
 
 steps:
   - checkout: self
@@ -44,45 +50,122 @@ steps:
       cp $(downloadSnowflakeKey.secureFilePath) ./SVC-SNF-GIT-GR-AI.p8
     displayName: 'Change Snowflake key location'
 
+  # Set deployment database and image repository based on branch
   - script: |
       if [ "$(Build.SourceBranchName)" == "main" ]; then
         echo "##vso[task.setvariable variable=DEPLOY_DB]$(PROD_DB)"
+        echo "##vso[task.setvariable variable=IMAGE_REPO]$(PROD_IMAGE_REPO)"
+        echo "##vso[task.setvariable variable=IMAGE_REPO_NAME]prod_gr_ai_ir"
       elif [ "$(Build.SourceBranchName)" == "stage" ]; then
         echo "##vso[task.setvariable variable=DEPLOY_DB]$(STAGE_DB)"
+        echo "##vso[task.setvariable variable=IMAGE_REPO]$(STAGE_IMAGE_REPO)"
+        echo "##vso[task.setvariable variable=IMAGE_REPO_NAME]stage_gr_ai_ir"
       else
         echo "##vso[task.setvariable variable=DEPLOY_DB]$(DEV_DB)"
+        echo "##vso[task.setvariable variable=IMAGE_REPO]$(STAGE_IMAGE_REPO)"
+        echo "##vso[task.setvariable variable=IMAGE_REPO_NAME]dev_gr_ai_ir"
       fi
-    displayName: 'Set deploy database based on branch'
+    displayName: 'Set deploy database and image repo based on branch'
 
-  # test connection with Snowflake
+  # Check if any Dockerfile exists in streamlit folder (including subfolders)
   - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection myconnection --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
+      DOCKERFILE_COUNT=$(find streamlit -name "Dockerfile" -type f 2>/dev/null | wc -l)
+      if [ "$DOCKERFILE_COUNT" -gt 0 ]; then
+        echo "Found ${DOCKERFILE_COUNT} Dockerfile(s) in streamlit/"
+        echo "##vso[task.setvariable variable=HAS_DOCKERFILE]true"
+      else
+        echo "No Dockerfile found in streamlit/ - skipping container build steps"
+        echo "##vso[task.setvariable variable=HAS_DOCKERFILE]false"
+      fi
+    displayName: 'Check for Dockerfiles in streamlit folder'
+
+  # Test connection with Snowflake
+  - script: |
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
     displayName: 'Test Snowflake CLI connection'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
 
-  # fetch repository in Snowflake
+  # Fetch repository in Snowflake
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) git fetch "$(UTILITY_DB).$(GIT_SCHEMA).$(REPO_NAME)" --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
     displayName: 'Fetch repo in Snowflake'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
-  
-  # run the python file that creates the sql statements used on deploy
+
+  ################################################################################
+  ################ CONTAINER BUILD AND PUSH STEPS ################################
+  ################################################################################
+
+  # Authenticate with Snowflake image registry (only if Dockerfile exists)
+  - script: |
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) spcs image-registry login --connection $(SNOWFLAKE_CONNECTION_NAME)
+    displayName: 'Authenticate with Snowflake Image Registry'
+    condition: eq(variables.HAS_DOCKERFILE, 'true')
+    env:
+      PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
+
+  # Build and push Docker images for ALL Dockerfiles found (supports multiple apps)
+  - script: |
+      BRANCH="$(Build.SourceBranchName)"
+      REPO_LOWER=$(echo "$(REPO_NAME)" | tr '[:upper:]' '[:lower:]')
+      
+      # Find all Dockerfiles and build each one
+      find streamlit -name "Dockerfile" -type f | while read DOCKERFILE_PATH; do
+        DOCKERFILE_DIR=$(dirname "$DOCKERFILE_PATH")
+        
+        # Get subfolder name relative to streamlit/
+        REL_PATH=${DOCKERFILE_DIR#streamlit/}
+        if [ "$REL_PATH" = "streamlit" ] || [ "$REL_PATH" = "$DOCKERFILE_DIR" ]; then
+          # Dockerfile is in streamlit root
+          IMAGE_NAME="${REPO_LOWER}_${BRANCH}_image"
+        else
+          # Dockerfile is in subfolder - include subfolder in name
+          SUBFOLDER=$(echo "$REL_PATH" | tr '/' '_')
+          IMAGE_NAME="${REPO_LOWER}_${BRANCH}_${SUBFOLDER}_image"
+        fi
+        
+        FULL_IMAGE_PATH="$(IMAGE_REPO)/${IMAGE_NAME}:latest"
+        
+        echo "========================================"
+        echo "Building image: ${IMAGE_NAME}"
+        echo "From directory: ${DOCKERFILE_DIR}"
+        echo "Full path: ${FULL_IMAGE_PATH}"
+        echo "========================================"
+        
+        docker build --rm --platform linux/amd64 -t "${FULL_IMAGE_PATH}" "${DOCKERFILE_DIR}"
+        
+        echo "Pushing image: ${FULL_IMAGE_PATH}"
+        docker push "${FULL_IMAGE_PATH}"
+      done
+    displayName: 'Build and Push Docker Images'
+    condition: eq(variables.HAS_DOCKERFILE, 'true')
+
+  ################################################################################
+  ################ DEPLOYMENT STEPS ##############################################
+  ################################################################################
+
+  # Run the python file that creates the sql statements used on deploy
   - script: |
       python .snowflake/deploy_sql.py
-    displayName: 'Generate and show deploy.sql and deploy_execute.sql'
+    displayName: 'Generate deploy.sql'
     env:
       DEPLOY_DB: $(DEPLOY_DB)
       DEPLOY_SCHEMA: $(SCHEMA)
       REPO_NAME: $(REPO_NAME)
       BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
       WAREHOUSE: $(WAREHOUSE)
+      UTILITY_DB: $(UTILITY_DB)
+      GIT_SCHEMA: $(GIT_SCHEMA)
+      # Container service env vars
+      COMPUTE_POOL: $(COMPUTE_POOL)
+      MIN_INSTANCES: $(MIN_INSTANCES)
+      MAX_INSTANCES: $(MAX_INSTANCES)
+      IMAGE_REPO_NAME: $(IMAGE_REPO_NAME)
 
-  # deploy/execute notebooks/streamlits
+  # Deploy/execute notebooks/streamlits/services
   - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection myconnection --warehouse $(WAREHOUSE)
-    displayName: 'Deploy/execute notebooks/streamlits'
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
+    displayName: 'Deploy notebooks/streamlits/services'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
-
