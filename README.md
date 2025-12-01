@@ -158,12 +158,19 @@ Use the create scripts to add new notebooks and Streamlit applications with auto
 ./create.sh
 ```
 
+The script will first ask whether you want to:
+1. **Create new** - Creates new files and connects them to Azure DevOps + Snowflake
+2. **Connect existing** - For files that already exist locally, just connects them to Azure DevOps + Snowflake
+
+This is useful when you've been experimenting with a notebook locally and later decide to integrate it into the CI/CD pipeline.
+
 This will:
+- Prompt for create new vs. connect existing choice
 - Prompt for notebook/Streamlit app creation choice
-- Generate empty Jupyter notebooks (`.ipynb`) in `notebooks/` directory
-- Create Streamlit app templates (`streamlit_app.py`) in `streamlit/` directory
+- For "Create new": Generate empty Jupyter notebooks (`.ipynb`) or Streamlit app templates
+- For "Connect existing": Verify the file exists locally
 - Pull latest changes from remote repository
-- Add new files to git staging and commit with custom message
+- Add files to git staging and commit with custom message
 - Push changes to remote repository
 - Authenticate with Snowflake using service principal private key
 - Fetch latest git repository state in Snowflake
@@ -193,6 +200,22 @@ The included pipeline file (platform-specific) provides:
   - **Databricks**: Token-based authentication
 - **Connection testing** and validation
 - **Notebook structure validation**
+
+### Snowpark Container Services (Snowflake only)
+
+The Snowflake pipeline supports deploying Streamlit apps as containerized services. To use this feature:
+
+1. Create a subfolder under `streamlit/` for your app (e.g., `streamlit/myapp/`)
+2. Add your `streamlit_app.py` to the subfolder
+3. Add a `Dockerfile` to the same subfolder
+4. (Optional) Add an `environment.yml` for Conda dependencies
+
+The pipeline will automatically:
+- Detect the Dockerfile and build a Docker image
+- Push the image to Snowflake's image registry
+- Create a Snowpark Container Service instead of a native Streamlit app
+
+You can mix containerized and native Streamlit apps in the same project - apps without a Dockerfile will be deployed as native Streamlit apps.
 
 ## Best Practices
 
