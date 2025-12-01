@@ -104,7 +104,7 @@ function Get-SecureInput {
 }
 
 # Main script
-Write-Info "Create New Notebook or Streamlit App"
+Write-Info "Create or Connect Notebook / Streamlit App"
 Write-Host ""
 
 # Get repo name (current directory name)
@@ -133,9 +133,34 @@ if ($CURRENT_BRANCH -ne "dev") {
     exit 1
 }
 
-# Ask what to create
+# Ask whether to create new or connect existing
 Write-Host ""
-Write-Info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"
+Write-Info "Would you like to create a new file or connect an existing one?"
+Write-Host "1) Create new (creates the file and connects to Azure DevOps + Snowflake)"
+Write-Host "2) Connect existing (file already exists locally, just connect to Azure DevOps + Snowflake)"
+$modeChoice = Read-Host "Enter your choice (1-2)"
+
+$CREATE_NEW = $false
+switch ($modeChoice) {
+    "1" {
+        $CREATE_NEW = $true
+    }
+    "2" {
+        $CREATE_NEW = $false
+    }
+    default {
+        Write-Error "Invalid choice. Exiting."
+        exit 1
+    }
+}
+
+# Ask what type to create/connect
+Write-Host ""
+if ($CREATE_NEW) {
+    Write-Info "What would you like to create? (Your current branch: $CURRENT_BRANCH)"
+} else {
+    Write-Info "What would you like to connect? (Your current branch: $CURRENT_BRANCH)"
+}
 Write-Host "1) Notebook"
 Write-Host "2) Streamlit App"  
 Write-Host "3) Both"
@@ -186,8 +211,13 @@ if ([string]::IsNullOrWhiteSpace($COMMIT_MESSAGE)) {
 
 Write-Host ""
 Write-Info "Summary:"
-if ($CREATE_NOTEBOOK) { Write-Info "  - Will create notebook: ${NOTEBOOK_NAME}.ipynb" }
-if ($CREATE_STREAMLIT) { Write-Info "  - Will create Streamlit app: $STREAMLIT_NAME" }
+if ($CREATE_NEW) {
+    if ($CREATE_NOTEBOOK) { Write-Info "  - Will create notebook: ${NOTEBOOK_NAME}.ipynb" }
+    if ($CREATE_STREAMLIT) { Write-Info "  - Will create Streamlit app: $STREAMLIT_NAME" }
+} else {
+    if ($CREATE_NOTEBOOK) { Write-Info "  - Will connect existing notebook: ${NOTEBOOK_NAME}.ipynb" }
+    if ($CREATE_STREAMLIT) { Write-Info "  - Will connect existing Streamlit app: $STREAMLIT_NAME" }
+}
 Write-Info "  - Commit message: $COMMIT_MESSAGE"
 Write-Host ""
 
@@ -197,39 +227,65 @@ if ($confirm -notmatch '^[Yy]$') {
     exit 0
 }
 
-# Create files
+# Create or verify files
 Write-Host ""
-Write-Info "Creating files..."
+if ($CREATE_NEW) {
+    Write-Info "Creating files..."
+} else {
+    Write-Info "Verifying existing files..."
+}
 
 if ($CREATE_NOTEBOOK) {
-    # Create notebooks directory if it doesn't exist
-    if (-not (Test-Path "notebooks")) {
-        New-Item -ItemType Directory -Path "notebooks" -Force | Out-Null
-    }
-    
     $NOTEBOOK_PATH = "notebooks\${NOTEBOOK_NAME}.ipynb"
-    if (Test-Path $NOTEBOOK_PATH) {
-        Write-Warning "Notebook $NOTEBOOK_PATH already exists. Overwriting..."
-    }
     
-    Create-NotebookTemplate -NotebookPath $NOTEBOOK_PATH -NotebookName $NOTEBOOK_NAME
-    Write-Success "Created notebook: $NOTEBOOK_PATH"
+    if ($CREATE_NEW) {
+        # Create notebooks directory if it doesn't exist
+        if (-not (Test-Path "notebooks")) {
+            New-Item -ItemType Directory -Path "notebooks" -Force | Out-Null
+        }
+        
+        if (Test-Path $NOTEBOOK_PATH) {
+            Write-Warning "Notebook $NOTEBOOK_PATH already exists. Overwriting..."
+        }
+        
+        Create-NotebookTemplate -NotebookPath $NOTEBOOK_PATH -NotebookName $NOTEBOOK_NAME
+        Write-Success "Created notebook: $NOTEBOOK_PATH"
+    } else {
+        # Verify notebook exists
+        if (-not (Test-Path $NOTEBOOK_PATH)) {
+            Write-Error "Notebook $NOTEBOOK_PATH does not exist!"
+            Write-Error "Please make sure the file exists or choose 'Create new' instead."
+            exit 1
+        }
+        Write-Success "Found existing notebook: $NOTEBOOK_PATH"
+    }
 }
 
 if ($CREATE_STREAMLIT) {
-    # Create streamlit directory structure
     $STREAMLIT_DIR = "streamlit\$STREAMLIT_NAME"
-    if (-not (Test-Path $STREAMLIT_DIR)) {
-        New-Item -ItemType Directory -Path $STREAMLIT_DIR -Force | Out-Null
-    }
-    
     $STREAMLIT_PATH = "$STREAMLIT_DIR\streamlit_app.py"
-    if (Test-Path $STREAMLIT_PATH) {
-        Write-Warning "Streamlit app $STREAMLIT_PATH already exists. Overwriting..."
-    }
     
-    Create-StreamlitTemplate -StreamlitPath $STREAMLIT_PATH -AppName $STREAMLIT_NAME
-    Write-Success "Created Streamlit app: $STREAMLIT_PATH"
+    if ($CREATE_NEW) {
+        # Create streamlit directory structure
+        if (-not (Test-Path $STREAMLIT_DIR)) {
+            New-Item -ItemType Directory -Path $STREAMLIT_DIR -Force | Out-Null
+        }
+        
+        if (Test-Path $STREAMLIT_PATH) {
+            Write-Warning "Streamlit app $STREAMLIT_PATH already exists. Overwriting..."
+        }
+        
+        Create-StreamlitTemplate -StreamlitPath $STREAMLIT_PATH -AppName $STREAMLIT_NAME
+        Write-Success "Created Streamlit app: $STREAMLIT_PATH"
+    } else {
+        # Verify streamlit app exists
+        if (-not (Test-Path $STREAMLIT_PATH)) {
+            Write-Error "Streamlit app $STREAMLIT_PATH does not exist!"
+            Write-Error "Please make sure the file exists or choose 'Create new' instead."
+            exit 1
+        }
+        Write-Success "Found existing Streamlit app: $STREAMLIT_PATH"
+    }
 }
 
 # Git operations
@@ -392,7 +448,7 @@ if ($CREATE_STREAMLIT) {
     $STREAMLIT_OBJECT_NAME = "${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
     
     # Use simpler streamlit creation syntax to avoid PowerShell quoting issues
-    $CREATE_STREAMLIT_CMD = "CREATE OR REPLACE STREAMLIT DEV_GR_AI_DB.$REPO_NAME.$STREAMLIT_OBJECT_NAME FROM '$FULL_REPO_PATH' MAIN_FILE = 'streamlit_app.py' QUERY_WAREHOUSE = NPRD_ANALYTICS_WH;"
+    $CREATE_STREAMLIT_CMD = "CREATE OR REPLACE STREAMLIT DEV_GR_AI_DB.$REPO_NAME.$STREAMLIT_OBJECT_NAME FROM '$FULL_REPO_PATH' MAIN_FILE = 'streamlit_app.py' QUERY_WAREHOUSE = NPRD_GR_TRANSFORM_WH;"
     
     Write-Host "Executing SQL:"
     Write-Host $CREATE_STREAMLIT_CMD
@@ -411,7 +467,11 @@ Remove-Item Env:\PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
 Write-Host ""
 Write-Success "All operations completed successfully!"
 Write-Host ""
-Write-Info "Summary of created objects:"
+if ($CREATE_NEW) {
+    Write-Info "Summary of created objects:"
+} else {
+    Write-Info "Summary of connected objects:"
+}
 if ($CREATE_NOTEBOOK) { 
     Write-Info "  - Notebook: notebooks\${NOTEBOOK_NAME}.ipynb"
     Write-Info "  - Snowflake Notebook: DEV_GR_AI_DB.$REPO_NAME.$NOTEBOOK_NAME"
@@ -421,4 +481,8 @@ if ($CREATE_STREAMLIT) {
     Write-Info "  - Snowflake Streamlit: DEV_GR_AI_DB.$REPO_NAME.${REPO_NAME}_${CURRENT_BRANCH}_${STREAMLIT_NAME}"
 }
 Write-Host ""
-Write-Info "You can now start developing your new files!"
+if ($CREATE_NEW) {
+    Write-Info "You can now start developing your new files!"
+} else {
+    Write-Info "Your existing files are now connected to Azure DevOps and Snowflake!"
+}
