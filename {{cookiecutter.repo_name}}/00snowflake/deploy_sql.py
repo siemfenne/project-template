@@ -101,6 +101,7 @@ if os.path.exists(streamlit_root):
                     # Image name includes subfolder to support multiple apps
                     image_name = f'{app_name.lower()}_image'
                     image_path = f'/{database}/IMAGE_REPO/{image_repo}/{image_name}:latest'
+                    deploy_lines.append(f"""DROP SERVICE IF EXISTS "{database}"."{schema}"."{service_name}";""")
                     deploy_lines.append(f"""
 -- Container Service: {service_name}
 CREATE SERVICE "{database}"."{schema}"."{service_name}"
