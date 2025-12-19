@@ -25,10 +25,6 @@
       "pyproject.toml",
       "environment.yml",
       "Pipfile"
-    ],
-    "operating_system": [
-      "Windows",
-      "macOS"
     ]
   }
   

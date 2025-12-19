@@ -27,7 +27,6 @@ You'll be prompted to answer several questions that customize your project:
 | `python_version` | Python version for the project | Free text (e.g., "3.9", "3.10") |
 | `environment_manager` | Python environment management tool | `virtualenv`, `conda`, `pipenv`, `poetry`, `uv`, `none` |
 | `dependency_file` | Dependency specification format | `requirements.txt`, `pyproject.toml`, `environment.yml`, `Pipfile` |
-| `operating_system` | Target operating system for setup scripts | `Windows` or `macOS` |
 
 ## Project Structure
 
@@ -84,19 +83,14 @@ The template automatically configures your project based on the selected platfor
 ```
 *Note: Snowflake-specific files (`.snowflake/`, `streamlit/`, `azure-pipeline-sf.yml`) are automatically removed.*
 
-#### When `operating_system = "Windows"`:
+#### Setup and Create Scripts
+Both Windows and macOS/Linux scripts are included in every generated project:
 ```
 ├── setup.ps1                    # Windows PowerShell setup script
-├── create.ps1                   # PowerShell script to create notebooks/Streamlit apps
-```
-*Note: Unix setup script (`setup.sh`) and create script (`create.sh`) are automatically removed.*
-
-#### When `operating_system = "macOS"`:
-```
 ├── setup.sh                     # Unix/macOS setup script
+├── create.ps1                   # PowerShell script to create notebooks/Streamlit apps
 ├── create.sh                    # Bash script to create notebooks/Streamlit apps
 ```
-*Note: Windows setup script (`setup.ps1`) and create script (`create.ps1`) are automatically removed.*
 
 ### Dependency Management Files
 
@@ -111,18 +105,18 @@ Based on your `dependency_file` choice, one of the following will be created in 
 
 After generating your project:
 
-> **📝 Note**: The template uses post-generation hooks to automatically clean up platform-specific and OS-specific files. You'll see confirmation messages during generation (e.g., "Removed azure-pipeline-sf.yml", "Removed setup.sh", "Project template configured for Databricks on Windows").
+> **📝 Note**: The template uses post-generation hooks to automatically clean up platform-specific files. You'll see confirmation messages during generation (e.g., "Removed azure-pipeline-sf.yml", "Project template configured for Databricks").
 
 ### 1. Setup Scripts (Recommended)
 
-Navigate to your project directory and run the setup script. The appropriate script for your operating system will be automatically included based on your `operating_system` selection during project generation:
+Navigate to your project directory and run the setup script for your operating system:
 
-**If you selected `Windows`:**
+**Windows:**
 ```powershell
 .\setup.ps1
 ```
 
-**If you selected `macOS`:**
+**macOS/Linux:**
 ```bash
 ./setup.sh
 ```

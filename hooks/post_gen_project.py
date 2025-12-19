@@ -8,7 +8,6 @@ import sys
 # get the project platform from cookiecutter context
 project_platform = '{{ cookiecutter.project_platform }}'
 project_development = '{{ cookiecutter.development }}'
-project_os = '{{ cookiecutter.operating_system }}'
 
 def safe_rename_folder(old_name, new_name, max_retries=3):
     """
@@ -92,37 +91,13 @@ for dir_name in dirs_to_remove:
         shutil.rmtree(dir_name)
         print(f"Removed directory {dir_name}")
 
-if project_os == 'Windows':
-    files_to_remove = [
-        'setup.sh',
-        'create.sh',
-        'notebooks/requirements/dbx-runtime-17.2-macos.txt'
-    ]
-
-    for file_name in files_to_remove:
-        if os.path.exists(file_name):
-            os.remove(file_name)
-            print(f"Removed {file_name}")
-    
-elif project_os == 'macOS':
-    files_to_remove = [
-        'setup.ps1',
-        'create.ps1',
-        'notebooks/requirements/dbx-runtime-17.2-windows.txt'
-    ]
-    
-    for file_name in files_to_remove:
-        if os.path.exists(file_name):
-            os.remove(file_name)
-            print(f"Removed {file_name}")
-    
-    shell_scripts = ['setup.sh', 'create.sh']
-    for shell_script in shell_scripts:
-        if os.path.exists(shell_script):
-            # Add execute permission for owner, group, and others
-            current_permissions = os.stat(shell_script).st_mode
-            os.chmod(shell_script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-            print(f"Made {shell_script} executable")
+# Make shell scripts executable (for macOS/Linux users)
+shell_scripts = ['setup.sh', 'create.sh']
+for shell_script in shell_scripts:
+    if os.path.exists(shell_script):
+        current_permissions = os.stat(shell_script).st_mode
+        os.chmod(shell_script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        print(f"Made {shell_script} executable")
 
 print(f"Project template configured for {project_platform}")
-print(f"You can continue connecting the project to Azure DevOps and Snowflake/Databricks using the setup.ps1 or setup.sh scripts")
+print(f"You can continue connecting the project to Azure DevOps and Snowflake/Databricks using the setup scripts (setup.ps1 for Windows, setup.sh for macOS/Linux)")
