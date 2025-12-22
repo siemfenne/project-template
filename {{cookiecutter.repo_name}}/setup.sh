@@ -344,23 +344,6 @@ setup_snowflake() {
         return 1
     fi
     
-    # Create Git repository object in Snowflake
-    local sf_cmd="
-CREATE GIT REPOSITORY IF NOT EXISTS $REPO_NAME
-  ORIGIN = '$REMOTE_URL'
-  API_INTEGRATION = API_GR_GIT_AZURE_DEVOPS
-  GIT_CREDENTIALS = EMEA_UTILITY_DB.SECRETS.SECRET_GR_GIT_AZURE_DEVOPS;
-"
-    
-    log "Creating Git repository object in Snowflake..."
-    if ! snow sql -c service_principal --query "$sf_cmd"; then
-        log_error "Failed to create Git repository object in Snowflake"
-        unset PRIVATE_KEY_PASSPHRASE
-        return 1
-    fi
-    
-    log_success "Git repository object created in Snowflake"
-    
     # Setup schema in DEV environment only
     # Stage and Prod schemas will be created automatically on deployment via deploy_sql.py
     local database="DEV_GR_AI_DB"
@@ -390,6 +373,32 @@ CREATE GIT REPOSITORY IF NOT EXISTS $REPO_NAME
     fi
     
     log_success "Schema and grants configured for $database"
+    
+    # Create Snowflake Service for running notebooks in Workspace
+    local service_name="${REPO_NAME}_SERVICE"
+    local compute_pool="GR_AI_CPU_M_CP"
+    local warehouse="NPRD_GR_TRANSFORM_WH"
+    
+    log "Creating Snowflake Service '$service_name' for Workspace notebooks..."
+    
+    local service_cmd="
+CREATE SERVICE IF NOT EXISTS $database.$REPO_NAME.$service_name
+  IN COMPUTE POOL $compute_pool
+  AUTO_SUSPEND_SECS = 3600
+  AUTO_RESUME = TRUE
+  MIN_INSTANCES = 1
+  MAX_INSTANCES = 2
+  QUERY_WAREHOUSE = $warehouse
+  EXTERNAL_ACCESS_INTEGRATIONS = (EXT_XS_INT_PYPI);
+"
+    
+    if ! snow sql -c service_principal --query "$service_cmd"; then
+        log_error "Failed to create Snowflake Service '$service_name'"
+        unset PRIVATE_KEY_PASSPHRASE
+        return 1
+    fi
+    
+    log_success "Snowflake Service '$service_name' created successfully"
     
     # Clean up sensitive environment variable
     unset PRIVATE_KEY_PASSPHRASE

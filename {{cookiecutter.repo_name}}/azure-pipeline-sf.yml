@@ -10,18 +10,15 @@ pool:
 variables:
   SNOWFLAKE_CONFIG_PATH: '.snowflake/config.toml'
   SNOWFLAKE_CONNECTION_NAME: 'myconnection'
-  REPO_NAME: '<REPO_NAME>' #                            <-- change these according to your repo name
   WAREHOUSE: '<WAREHOUSE>' #                            <-- change these according to your needs
+  COMPUTE_POOL: '<COMPUTE_POOL>' #                      <-- change to your compute pool name
   DEV_DB: 'DEV_GR_AI_DB' #                        
   STAGE_DB: 'STAGE_GR_AI_DB' #                    
   PROD_DB: 'PROD_GR_AI_DB' #                      
   SCHEMA: '<SCHEMA_NAME>' #                             <-- change these according to your schema name
-  UTILITY_DB: 'EMEA_UTILITY_DB'
-  GIT_SCHEMA: 'GIT_REPOSITORIES'
   # Container-specific variables
   STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
   PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
-  COMPUTE_POOL: '<COMPUTE_POOL>' #                      <-- change to your compute pool name
   MIN_INSTANCES: '1' #                                  <-- change to your liking
   MAX_INSTANCES: '1' #                                  <-- change to your liking
 
@@ -81,15 +78,8 @@ steps:
 
   # Test connection with Snowflake
   - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --database $(DEPLOY_DB) --schema $(SCHEMA) --warehouse $(WAREHOUSE)
     displayName: 'Test Snowflake CLI connection'
-    env:
-      PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
-
-  # Fetch repository in Snowflake
-  - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) git fetch "$(UTILITY_DB).$(GIT_SCHEMA).$(REPO_NAME)" --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
-    displayName: 'Fetch repo in Snowflake'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
 
@@ -147,25 +137,25 @@ steps:
 
   # Run the python file that creates the sql statements used on deploy
   - script: |
-      python .snowflake/deploy_sql.py
+      python 00snowflake/deploy_sql.py
     displayName: 'Generate deploy.sql'
+    condition: eq(variables.HAS_DOCKERFILE, 'true')
     env:
       DEPLOY_DB: $(DEPLOY_DB)
       DEPLOY_SCHEMA: $(SCHEMA)
       REPO_NAME: $(REPO_NAME)
       BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
       WAREHOUSE: $(WAREHOUSE)
-      UTILITY_DB: $(UTILITY_DB)
-      GIT_SCHEMA: $(GIT_SCHEMA)
       # Container service env vars
       COMPUTE_POOL: $(COMPUTE_POOL)
       MIN_INSTANCES: $(MIN_INSTANCES)
       MAX_INSTANCES: $(MAX_INSTANCES)
       IMAGE_REPO_NAME: $(IMAGE_REPO_NAME)
 
-  # Deploy/execute notebooks/streamlits/services
+  # Deploy containerized Streamlit services
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
-    displayName: 'Deploy notebooks/streamlits/services'
+    displayName: 'Deploy containerized Streamlit services'
+    condition: eq(variables.HAS_DOCKERFILE, 'true')
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)

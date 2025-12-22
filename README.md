@@ -10,7 +10,7 @@ A standardized cookiecutter template for Data Science projects at Medtronic, des
 ### Generate a New Project
 
 ```bash
-cookiecutter https://dev.azure.com/MedtronicBI/DigIC%20GR%20AI/_git/project-template
+cookiecutter https://dev.azure.com/MedtronicBI/DigIC%20GR%20AI/_git/project-template-2
 ```
 
 You'll be prompted to answer several questions that customize your project:
@@ -65,11 +65,11 @@ The template automatically configures your project based on the selected platfor
 
 #### When `project_platform = "Snowflake"`:
 ```
-├── .snowflake/                   # Snowflake configuration
+├── 00snowflake/                  # Snowflake configuration
 │   ├── config.toml              # Snowflake connection config
-│   ├── deploy.sql               # SQL deployment scripts
-│   └── deploy_sql.py            # Python deployment utilities
-├── streamlit/                   # Streamlit app directory
+│   ├── deploy.sql               # SQL deployment scripts (generated)
+│   └── deploy_sql.py            # Python script for containerized Streamlit deployment
+├── streamlit/                   # Streamlit app directory (for containerized apps)
 │   ├── streamlit_app.py         # Main Streamlit application
 │   └── environment.yml          # Streamlit dependencies
 └── azure-pipeline-sf.yml        # Azure DevOps CI/CD pipeline template for Snowflake
@@ -128,51 +128,25 @@ This will:
 - Initialize local git repository with initial commit
 - Create and push `main`, `stage`, and `dev` branches
 - Set up remote origin
-- Optionally link repository in Snowflake:
-  - Create git repository object with Azure DevOps integration
-  - Create project schema in PROD_GR_AI_DB, STAGE_GR_AI_DB, and DEV_GR_AI_DB
-  - Grant appropriate permissions to GR_AI_ENGINEER role
+- Optionally set up Snowflake integration:
+  - Create project schema in `DEV_GR_AI_DB`
+  - Grant appropriate permissions to `GR_AI_ENGINEER` role
+  - Create a Snowflake Service (`{REPO_NAME}_SERVICE`) for running notebooks in Snowflake Workspaces
 - Optionally link repository in Databricks:
-  - Create repository links in all three environments (PROD, STAGE, DEV)
+  - Create repository links in DEV environment
   - Set up workspace paths under user directory
 
-**Important**: When you choose to link the repository to Snowflake, you will be prompted to provide a private key passphrase. Here you have to insert the passphrase of the Service Principal. Please ask Ronald to pass it to you.
+**Important**: When you choose to set up Snowflake integration, you will be prompted to provide a private key passphrase. Here you have to insert the passphrase of the Service Principal. Please ask Ronald to pass it to you.
 
-### 2. Create Scripts - Adding Notebooks and Streamlit Apps
+### 2. Working with Snowflake Workspaces
 
-Use the create scripts to add new notebooks and Streamlit applications with automatic git and Snowflake integration.
+With Snowflake Workspaces, notebooks and Streamlit apps are now managed directly within Snowflake:
 
-**For Windows:**
-```powershell
-.\create.ps1
-```
+- **Notebooks**: Create and edit Jupyter notebooks directly in Snowflake Workspaces. They persist across git branches and don't require CI/CD deployment.
+- **Native Streamlit Apps**: Create Streamlit apps directly in Snowflake Workspaces without needing containerization.
+- **Containerized Streamlit Apps**: For apps requiring custom dependencies via Docker, use the CI/CD pipeline (see below).
 
-**For macOS/Linux:**
-```bash
-./create.sh
-```
-
-The script will first ask whether you want to:
-1. **Create new** - Creates new files and connects them to Azure DevOps + Snowflake
-2. **Connect existing** - For files that already exist locally, just connects them to Azure DevOps + Snowflake
-
-This is useful when you've been experimenting with a notebook locally and later decide to integrate it into the CI/CD pipeline.
-
-This will:
-- Prompt for create new vs. connect existing choice
-- Prompt for notebook/Streamlit app creation choice
-- For "Create new": Generate empty Jupyter notebooks (`.ipynb`) or Streamlit app templates
-- For "Connect existing": Verify the file exists locally
-- Pull latest changes from remote repository
-- Add files to git staging and commit with custom message
-- Push changes to remote repository
-- Authenticate with Snowflake using service principal private key
-- Fetch latest git repository state in Snowflake
-- Create notebook objects in `DEV_GR_AI_DB.{repo_name}.{notebook_name}`
-- Create Streamlit app objects in `DEV_GR_AI_DB.{repo_name}.{streamlit_name}`
-- Add live versions to created notebooks
-
-**Important**: You will be prompted to provide your Snowflake private key passphrase. Please ask Ronald to pass it to you.
+The Service created during setup (`{REPO_NAME}_SERVICE`) provides the compute resources for running notebooks in Workspaces.
 
 ## Branching Strategy
 
@@ -187,17 +161,18 @@ This template implements a Git branching strategy aligned with the team's deploy
 
 The included pipeline file (platform-specific) provides:
 
-- **Triggers**: Pull requests to stage/main and pushes to main/stage/dev
+- **Triggers**: Pushes to `main` and `stage` branches
 - **Environment-specific database mapping** via Azure DevOps variables
 - **Platform-specific authentication**:
   - **Snowflake**: JWT authentication via private key
   - **Databricks**: Token-based authentication
 - **Connection testing** and validation
-- **Notebook structure validation**
 
 ### Snowpark Container Services (Snowflake only)
 
-The Snowflake pipeline supports deploying Streamlit apps as containerized services. To use this feature:
+The Snowflake pipeline deploys containerized Streamlit apps as Snowpark Container Services. This is only needed for apps that require custom Docker images with specific dependencies.
+
+To deploy a containerized Streamlit app:
 
 1. Create a subfolder under `streamlit/` for your app (e.g., `streamlit/myapp/`)
 2. Add your `streamlit_app.py` to the subfolder
@@ -207,9 +182,9 @@ The Snowflake pipeline supports deploying Streamlit apps as containerized servic
 The pipeline will automatically:
 - Detect the Dockerfile and build a Docker image
 - Push the image to Snowflake's image registry
-- Create a Snowpark Container Service instead of a native Streamlit app
+- Create a Snowpark Container Service
 
-You can mix containerized and native Streamlit apps in the same project - apps without a Dockerfile will be deployed as native Streamlit apps.
+> **Note**: For simple Streamlit apps without custom dependencies, you can create them directly in Snowflake Workspaces without needing containerization or CI/CD deployment.
 
 ## Best Practices
 
