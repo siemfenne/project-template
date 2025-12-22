@@ -463,37 +463,6 @@ function Set-SnowflakeIntegration {
     
     Write-Success "Schema and grants configured for $database"
     
-    # Create Snowflake Service for running notebooks in Workspace
-    $serviceName = "$($script:REPO_NAME)_SERVICE"
-    $computePool = "GR_AI_CPU_M_CP"
-    $warehouse = "NPRD_GR_TRANSFORM_WH"
-    
-    Write-Log "Creating Snowflake Service '$serviceName' for Workspace notebooks..."
-    
-    $serviceCmd = @"
-CREATE SERVICE IF NOT EXISTS $database.$script:REPO_NAME.$serviceName
-  IN COMPUTE POOL $computePool
-  AUTO_SUSPEND_SECS = 3600
-  AUTO_RESUME = TRUE
-  MIN_INSTANCES = 1
-  MAX_INSTANCES = 2
-  QUERY_WAREHOUSE = $warehouse
-  EXTERNAL_ACCESS_INTEGRATIONS = (EXT_XS_INT_PYPI);
-"@
-    
-    try {
-        snow sql -c service_principal --query $serviceCmd
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to create Snowflake Service"
-        }
-    } catch {
-        Write-Error "Failed to create Snowflake Service '$serviceName'"
-        Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
-        return $false
-    }
-    
-    Write-Success "Snowflake Service '$serviceName' created successfully"
-    
     # Clean up sensitive environment variable
     Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
     

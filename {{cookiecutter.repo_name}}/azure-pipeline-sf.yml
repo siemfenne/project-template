@@ -137,7 +137,7 @@ steps:
 
   # Run the python file that creates the sql statements used on deploy
   - script: |
-      python 00snowflake/deploy_sql.py
+      python .snowflake/deploy_sql.py
     displayName: 'Generate deploy.sql'
     condition: eq(variables.HAS_DOCKERFILE, 'true')
     env:

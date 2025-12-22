@@ -374,32 +374,6 @@ setup_snowflake() {
     
     log_success "Schema and grants configured for $database"
     
-    # Create Snowflake Service for running notebooks in Workspace
-    local service_name="${REPO_NAME}_SERVICE"
-    local compute_pool="GR_AI_CPU_M_CP"
-    local warehouse="NPRD_GR_TRANSFORM_WH"
-    
-    log "Creating Snowflake Service '$service_name' for Workspace notebooks..."
-    
-    local service_cmd="
-CREATE SERVICE IF NOT EXISTS $database.$REPO_NAME.$service_name
-  IN COMPUTE POOL $compute_pool
-  AUTO_SUSPEND_SECS = 3600
-  AUTO_RESUME = TRUE
-  MIN_INSTANCES = 1
-  MAX_INSTANCES = 2
-  QUERY_WAREHOUSE = $warehouse
-  EXTERNAL_ACCESS_INTEGRATIONS = (EXT_XS_INT_PYPI);
-"
-    
-    if ! snow sql -c service_principal --query "$service_cmd"; then
-        log_error "Failed to create Snowflake Service '$service_name'"
-        unset PRIVATE_KEY_PASSPHRASE
-        return 1
-    fi
-    
-    log_success "Snowflake Service '$service_name' created successfully"
-    
     # Clean up sensitive environment variable
     unset PRIVATE_KEY_PASSPHRASE
     

@@ -131,7 +131,6 @@ This will:
 - Optionally set up Snowflake integration:
   - Create project schema in `DEV_GR_AI_DB`
   - Grant appropriate permissions to `GR_AI_ENGINEER` role
-  - Create a Snowflake Service (`{REPO_NAME}_SERVICE`) for running notebooks in Snowflake Workspaces
 - Optionally link repository in Databricks:
   - Create repository links in DEV environment
   - Set up workspace paths under user directory
@@ -145,8 +144,6 @@ With Snowflake Workspaces, notebooks and Streamlit apps are now managed directly
 - **Notebooks**: Create and edit Jupyter notebooks directly in Snowflake Workspaces. They persist across git branches and don't require CI/CD deployment.
 - **Native Streamlit Apps**: Create Streamlit apps directly in Snowflake Workspaces without needing containerization.
 - **Containerized Streamlit Apps**: For apps requiring custom dependencies via Docker, use the CI/CD pipeline (see below).
-
-The Service created during setup (`{REPO_NAME}_SERVICE`) provides the compute resources for running notebooks in Workspaces.
 
 ## Branching Strategy
 
