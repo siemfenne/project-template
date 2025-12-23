@@ -71,7 +71,6 @@ elif project_platform == 'Databricks':
     dirs_to_remove = [
         '.snowflake',
         # '00snowflake',  # fallback in case rename didn't happen
-        'streamlit'
     ]
     if project_development == 'Local':
         files_to_remove.append('notebooks/requirements.txt')
