@@ -64,17 +64,17 @@ steps:
       fi
     displayName: 'Set deploy database and image repo based on branch'
 
-  # Check if any Dockerfile exists in streamlit folder (including subfolders)
+  # Check if any Dockerfile exists in apps folder (including subfolders)
   - script: |
-      DOCKERFILE_COUNT=$(find streamlit -name "Dockerfile" -type f 2>/dev/null | wc -l)
+      DOCKERFILE_COUNT=$(find apps -name "Dockerfile" -type f 2>/dev/null | wc -l)
       if [ "$DOCKERFILE_COUNT" -gt 0 ]; then
-        echo "Found ${DOCKERFILE_COUNT} Dockerfile(s) in streamlit/"
+        echo "Found ${DOCKERFILE_COUNT} Dockerfile(s) in apps/"
         echo "##vso[task.setvariable variable=HAS_DOCKERFILE]true"
       else
-        echo "No Dockerfile found in streamlit/ - skipping container build steps"
+        echo "No Dockerfile found in apps/ - skipping container build steps"
         echo "##vso[task.setvariable variable=HAS_DOCKERFILE]false"
       fi
-    displayName: 'Check for Dockerfiles in streamlit folder'
+    displayName: 'Check for Dockerfiles in apps folder'
 
   # Test connection with Snowflake
   - script: |
@@ -101,13 +101,13 @@ steps:
       REPO_LOWER=$(echo "$(REPO_NAME)" | tr '[:upper:]' '[:lower:]')
       
       # Find all Dockerfiles and build each one
-      find streamlit -name "Dockerfile" -type f | while read DOCKERFILE_PATH; do
+      find apps -name "Dockerfile" -type f | while read DOCKERFILE_PATH; do
         DOCKERFILE_DIR=$(dirname "$DOCKERFILE_PATH")
         
-        # Get subfolder name relative to streamlit/
-        REL_PATH=${DOCKERFILE_DIR#streamlit/}
-        if [ "$REL_PATH" = "streamlit" ] || [ "$REL_PATH" = "$DOCKERFILE_DIR" ]; then
-          # Dockerfile is in streamlit root
+        # Get subfolder name relative to apps/
+        REL_PATH=${DOCKERFILE_DIR#apps/}
+        if [ "$REL_PATH" = "apps" ] || [ "$REL_PATH" = "$DOCKERFILE_DIR" ]; then
+          # Dockerfile is in apps root
           IMAGE_NAME="${REPO_LOWER}_${BRANCH}_image"
         else
           # Dockerfile is in subfolder - include subfolder in name
@@ -152,10 +152,10 @@ steps:
       MAX_INSTANCES: $(MAX_INSTANCES)
       IMAGE_REPO_NAME: $(IMAGE_REPO_NAME)
 
-  # Deploy containerized Streamlit services
+  # Deploy containerized app services
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
-    displayName: 'Deploy containerized Streamlit services'
+    displayName: 'Deploy containerized app services'
     condition: eq(variables.HAS_DOCKERFILE, 'true')
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)

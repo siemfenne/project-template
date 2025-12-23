@@ -37,11 +37,11 @@ deploy_lines.extend(use_lines)
 # Only Dockerized apps are deployed via pipeline (native Streamlit apps are 
 # managed through Snowflake Workspaces)
 
-streamlit_root = os.path.abspath(os.path.join(base_dir, '..', 'streamlit'))
+streamlit_root = os.path.abspath(os.path.join(base_dir, '..', 'apps'))
 if os.path.exists(streamlit_root):
     for dirpath, dirnames, filenames in os.walk(streamlit_root):
         for filename in filenames:
-            if filename == 'streamlit_app.py':
+            if filename == 'main.py':
                 app_path = os.path.join(dirpath, filename)
                 dockerfile_path = os.path.join(dirpath, 'Dockerfile')
                 
