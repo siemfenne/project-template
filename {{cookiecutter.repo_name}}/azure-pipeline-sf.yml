@@ -78,7 +78,7 @@ steps:
 
   # Test connection with Snowflake
   - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --database $(DEPLOY_DB) --schema $(SCHEMA) --warehouse $(WAREHOUSE)
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
     displayName: 'Test Snowflake CLI connection'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
@@ -139,7 +139,6 @@ steps:
   - script: |
       python .snowflake/deploy_sql.py
     displayName: 'Generate deploy.sql'
-    condition: eq(variables.HAS_DOCKERFILE, 'true')
     env:
       DEPLOY_DB: $(DEPLOY_DB)
       DEPLOY_SCHEMA: $(SCHEMA)
@@ -152,10 +151,9 @@ steps:
       MAX_INSTANCES: $(MAX_INSTANCES)
       IMAGE_REPO_NAME: $(IMAGE_REPO_NAME)
 
-  # Deploy containerized app services
+  # Run SQL deployment (schema, notebook project, execute notebooks, services)
   - script: |
       snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
-    displayName: 'Deploy containerized app services'
-    condition: eq(variables.HAS_DOCKERFILE, 'true')
+    displayName: 'Run the deploy.sql file'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)

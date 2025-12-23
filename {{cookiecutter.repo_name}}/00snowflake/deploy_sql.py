@@ -20,13 +20,17 @@ output_path = os.path.join(base_dir, 'deploy.sql')
 deploy_lines = []
 
 ################################################################################
-################ DATABASE AND SCHEMA SETUP #####################################
+################ DATABASE, SCHEMA, NOTEBOOK PROJECT SETUP ######################
 ################################################################################
+workspace_url = f'snow://workspace/USER$.PUBLIC.{repo_name}/versions/head/'
+
 use_lines = [
     f"USE DATABASE {database};\n",
     f"CREATE SCHEMA IF NOT EXISTS {schema};\n",
     f"GRANT ALL PRIVILEGES ON SCHEMA {database}.{schema} TO ROLE GR_AI_ENGINEER;\n",
-    f"USE SCHEMA {schema};\n\n"
+    f"USE SCHEMA {schema};\n\n",
+    f"CREATE OR REPLACE NOTEBOOK PROJECT {database}.{schema}.{repo_name}\n",
+    f"  FROM '{workspace_url}'\n"
 ]
 deploy_lines.extend(use_lines)
 
@@ -83,6 +87,34 @@ $$
   MIN_INSTANCES={min_instances}
   MAX_INSTANCES={max_instances}
   QUERY_WAREHOUSE={warehouse};
+""")
+
+################################################################################
+################ EXECUTE NOTEBOOKS ON DEPLOY ###################################
+################ UNCOMMENT AND CONFIGURE AS NEEDED #############################
+################################################################################
+# List of notebooks to execute on deploy
+# Format: (notebook_file, compute_pool, runtime, external_access_integrations)
+# - notebook_file: path relative to workspace root (e.g., 'notebooks/init.ipynb')
+# - compute_pool: compute pool name for container runtime execution
+# - runtime: runtime version (e.g., 'V2.2-CPU-PY3.11')
+# - external_access_integrations: list of EAI names or empty list
+
+execute_list = [
+    ("notebooks/DEVOPS_01_00_DATABASE_INIT.ipynb", "GR_AI_CPU_S_CP", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"]),
+    ("notebooks/DEVOPS_00_01_SCHEDULER.ipynb", "GR_AI_CPU_S_CP", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"]),
+]
+
+for notebook_file, cp, runtime, eai_list in execute_list:
+    eai_values = ', '.join(f"'{e}'" for e in eai_list)
+    eai_str = f"EXTERNAL_ACCESS_INTEGRATIONS = ({eai_values})" if eai_list else ""
+    deploy_lines.append(f"""
+EXECUTE NOTEBOOK PROJECT {database}.{schema}.{repo_name}
+  MAIN_FILE = '{notebook_file}'
+  COMPUTE_POOL = '{cp}'
+  RUNTIME = '{runtime}'
+  QUERY_WAREHOUSE = '{warehouse}'
+  {eai_str};
 """)
 
 ################################################################################
