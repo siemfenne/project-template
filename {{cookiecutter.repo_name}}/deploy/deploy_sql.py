@@ -8,6 +8,7 @@ schema = os.environ['DEPLOY_SCHEMA']
 repo_name = os.environ['REPO_NAME']
 branch = os.environ['BUILD_SOURCEBRANCHNAME']
 warehouse = os.environ['WAREHOUSE']
+workspace_owner = os.environ.get('WORKSPACE_OWNER', 'USER$')  # Snowflake username who owns the workspace
 # Container service env vars
 compute_pool = os.environ.get('COMPUTE_POOL', '')
 min_instances = os.environ.get('MIN_INSTANCES', '1')
@@ -22,7 +23,7 @@ deploy_lines = []
 ################################################################################
 ################ DATABASE, SCHEMA, NOTEBOOK PROJECT SETUP ######################
 ################################################################################
-workspace_url = f'snow://workspace/USER$.PUBLIC.{repo_name}/versions/head/'
+workspace_url = f'snow://workspace/USER${workspace_owner}.PUBLIC.{repo_name}/versions/head/'
 
 use_lines = [
     f"USE DATABASE {database};\n",
@@ -30,7 +31,7 @@ use_lines = [
     f"GRANT ALL PRIVILEGES ON SCHEMA {database}.{schema} TO ROLE GR_AI_ENGINEER;\n",
     f"USE SCHEMA {schema};\n\n",
     f"CREATE OR REPLACE NOTEBOOK PROJECT {database}.{schema}.{repo_name}\n",
-    f"  FROM '{workspace_url}'\n"
+    f"  FROM '{workspace_url}';\n"
 ]
 deploy_lines.extend(use_lines)
 
@@ -94,27 +95,37 @@ $$
 ################ UNCOMMENT AND CONFIGURE AS NEEDED #############################
 ################################################################################
 # List of notebooks to execute on deploy
-# Format: (notebook_file, compute_pool, runtime, external_access_integrations)
-# - notebook_file: path relative to workspace root (e.g., 'notebooks/init.ipynb')
+# Format: (notebook_file, compute_pool, runtime, external_access_integrations, arguments)
+# - notebook_file: path relative to workspace root (e.g., 'notebooks/NOTEBOOK1.ipynb')
 # - compute_pool: compute pool name for container runtime execution
 # - runtime: runtime version (e.g., 'V2.2-CPU-PY3.11')
 # - external_access_integrations: list of EAI names or empty list
+# - arguments: (optional) string of CLI-style arguments passed to the notebook
+#              Use f-strings for dynamic values: database, schema, repo_name, branch, warehouse
+#              e.g., f'--database="{database}" --schema="{schema}" --custom="value"'
+#              In the notebook, parse with argparse: args, _ = parser.parse_known_args(sys.argv[1:])
 
 execute_list = [
-    ("notebooks/DEVOPS_01_00_DATABASE_INIT.ipynb", "GR_AI_CPU_S_CP", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"]),
-    ("notebooks/DEVOPS_00_01_SCHEDULER.ipynb", "GR_AI_CPU_S_CP", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"]),
+    ("notebooks/NOTEBOOK1.ipynb", f"{compute_pool}", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"], f'--database="{database}" --schema="{schema}"'),
+    ("notebooks/NOTEBOOK2.ipynb", f"{compute_pool}", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"], f'--database="{database}" --schema="{schema}"'),
 ]
 
-for notebook_file, cp, runtime, eai_list in execute_list:
+for notebook_file, cp, runtime, eai_list, *optional in execute_list:
+    # Handle optional arguments parameter (5th element)
+    arguments = optional[0] if optional else ""
+    
+    # Build optional clauses
     eai_values = ', '.join(f"'{e}'" for e in eai_list)
-    eai_str = f"EXTERNAL_ACCESS_INTEGRATIONS = ({eai_values})" if eai_list else ""
+    eai_str = f"  EXTERNAL_ACCESS_INTEGRATIONS = ({eai_values})\n" if eai_list else ""
+    args_str = f"  ARGUMENTS = '{arguments}'\n" if arguments else ""
+    
     deploy_lines.append(f"""
 EXECUTE NOTEBOOK PROJECT {database}.{schema}.{repo_name}
   MAIN_FILE = '{notebook_file}'
   COMPUTE_POOL = '{cp}'
   RUNTIME = '{runtime}'
   QUERY_WAREHOUSE = '{warehouse}'
-  {eai_str};
+{eai_str}{args_str};
 """)
 
 ################################################################################

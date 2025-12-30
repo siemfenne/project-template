@@ -8,7 +8,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  SNOWFLAKE_CONFIG_PATH: '.snowflake/config.toml'
+  SNOWFLAKE_CONFIG_PATH: 'deploy/config.toml'
   SNOWFLAKE_CONNECTION_NAME: 'myconnection'
   WAREHOUSE: '<WAREHOUSE>' #                            <-- change these according to your needs
   COMPUTE_POOL: '<COMPUTE_POOL>' #                      <-- change to your compute pool name
@@ -16,9 +16,11 @@ variables:
   STAGE_DB: 'STAGE_GR_AI_DB' #                    
   PROD_DB: 'PROD_GR_AI_DB' #                      
   SCHEMA: '<SCHEMA_NAME>' #                             <-- change these according to your schema name
+  REPO_NAME: '<REPO_NAME>' #                            <-- change to your repo name
+  WORKSPACE_OWNER: '<USERNAME>' #                       <-- Snowflake username who owns the workspace, e.g., FENNES2
   # Container-specific variables
-  STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
-  PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
+  STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registrydeploycomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
+  PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registrydeploycomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
   MIN_INSTANCES: '1' #                                  <-- change to your liking
   MAX_INSTANCES: '1' #                                  <-- change to your liking
 
@@ -26,7 +28,7 @@ steps:
   - checkout: self
 
   - script: |
-      chmod 600 .snowflake/config.toml
+      chmod 600 deploy/config.toml
     displayName: 'Fix config.toml permissions'
 
   - task: UsePythonVersion@0
@@ -137,7 +139,7 @@ steps:
 
   # Run the python file that creates the sql statements used on deploy
   - script: |
-      python .snowflake/deploy_sql.py
+      python deploy/deploy_sql.py
     displayName: 'Generate deploy.sql'
     env:
       DEPLOY_DB: $(DEPLOY_DB)
@@ -150,10 +152,11 @@ steps:
       MIN_INSTANCES: $(MIN_INSTANCES)
       MAX_INSTANCES: $(MAX_INSTANCES)
       IMAGE_REPO_NAME: $(IMAGE_REPO_NAME)
+      WORKSPACE_OWNER: $(WORKSPACE_OWNER)
 
   # Run SQL deployment (schema, notebook project, execute notebooks, services)
   - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f .snowflake/deploy.sql --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) sql -f deploy/deploy.sql --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
     displayName: 'Run the deploy.sql file'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
