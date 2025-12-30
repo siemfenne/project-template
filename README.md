@@ -65,12 +65,12 @@ The template automatically configures your project based on the selected platfor
 
 #### When `project_platform = "Snowflake"`:
 ```
-├── 00snowflake/                  # Snowflake configuration
+├── deploy/                       # Snowflake deployment configuration
 │   ├── config.toml              # Snowflake connection config
 │   ├── deploy.sql               # SQL deployment scripts (generated)
-│   └── deploy_sql.py            # Python script for containerized Streamlit deployment
-├── streamlit/                   # Streamlit app directory (for containerized apps)
-│   ├── streamlit_app.py         # Main Streamlit application
+│   └── deploy_sql.py            # Python script for SQL generation and notebook execution
+├── apps/                        # Streamlit app directory (for containerized apps)
+│   ├── main.py                  # Main Streamlit application
 │   └── environment.yml          # Streamlit dependencies
 └── azure-pipeline-sf.yml        # Azure DevOps CI/CD pipeline template for Snowflake
 ```
@@ -81,7 +81,7 @@ The template automatically configures your project based on the selected platfor
 ├── databricks.yml               # Databricks project configuration for pipeline
 └── azure-pipeline-dbx.yml       # Azure DevOps CI/CD pipeline template for Databricks
 ```
-*Note: Snowflake-specific files (`.snowflake/`, `streamlit/`, `azure-pipeline-sf.yml`) are automatically removed.*
+*Note: Snowflake-specific files (`deploy/`, `apps/`, `azure-pipeline-sf.yml`) are automatically removed.*
 
 #### Setup and Create Scripts
 Both Windows and macOS/Linux scripts are included in every generated project:
@@ -171,8 +171,8 @@ The Snowflake pipeline deploys containerized Streamlit apps as Snowpark Containe
 
 To deploy a containerized Streamlit app:
 
-1. Create a subfolder under `streamlit/` for your app (e.g., `streamlit/myapp/`)
-2. Add your `streamlit_app.py` to the subfolder
+1. Create a subfolder under `apps/` for your app (e.g., `apps/myapp/`)
+2. Add your `main.py` to the subfolder
 3. Add a `Dockerfile` to the same subfolder
 4. (Optional) Add an `environment.yml` for Conda dependencies
 
