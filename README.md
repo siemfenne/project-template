@@ -2,7 +2,7 @@
 
 A standardized cookiecutter template for Data Science projects at Medtronic, designed to enforce best practices and provide a consistent project structure across teams.
 
-## Quick Start
+## Quick Start 
 
 ### Prerequisites
 - Cookiecutter installed (`pip install cookiecutter==2.6.0`)
