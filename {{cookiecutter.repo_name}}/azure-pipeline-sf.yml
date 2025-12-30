@@ -19,8 +19,8 @@ variables:
   REPO_NAME: '<REPO_NAME>' #                            <-- change to your repo name
   WORKSPACE_OWNER: '<USERNAME>' #                       <-- Snowflake username who owns the workspace, e.g., FENNES2
   # Container-specific variables
-  STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registrydeploycomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
-  PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registrydeploycomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
+  STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
+  PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
   MIN_INSTANCES: '1' #                                  <-- change to your liking
   MAX_INSTANCES: '1' #                                  <-- change to your liking
 
