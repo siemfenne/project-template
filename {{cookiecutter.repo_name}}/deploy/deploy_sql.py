@@ -128,6 +128,22 @@ QUERY_WAREHOUSE = '{warehouse}'
 """)
 
 ################################################################################
+################ EXECUTE NOTEBOOKS ON DEPLOY ###################################
+################ UNCOMMENT AND CONFIGURE AS NEEDED #############################
+################################################################################
+# execute_list = [
+#     # (notebook_name, notebook_params)
+#     ("DEVOPS_01_00_DATABASE_INIT", f"DATABASE={database} SCHEMA={schema}"),
+#     ("DEVOPS_00_01_SCHEDULER", f"DATABASE={database} SCHEMA={schema} WAREHOUSE={warehouse}")
+# ]
+
+# for notebook_name, notebook_params in execute_list:
+#     deploy_lines.append(f"""
+# EXECUTE NOTEBOOK IDENTIFIER('"{database}"."{schema}"."{notebook_name}"')('{notebook_params}');
+# """)
+
+
+################################################################################
 ################ WRITE OUTPUT ##################################################
 ################################################################################
 with open(output_path, 'w') as f:
