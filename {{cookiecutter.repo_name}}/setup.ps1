@@ -418,6 +418,28 @@ function Set-SnowflakeIntegration {
         return $false
     }
     
+    # Create Git repository object in Snowflake
+    $sf_cmd = @"
+CREATE GIT REPOSITORY IF NOT EXISTS $script:REPO_NAME
+  ORIGIN = '$script:REMOTE_URL'
+  API_INTEGRATION = API_GR_GIT_AZURE_DEVOPS
+  GIT_CREDENTIALS = EMEA_UTILITY_DB.SECRETS.SECRET_GR_GIT_AZURE_DEVOPS;
+"@
+    
+    Write-Log "Creating Git repository object in Snowflake..."
+    try {
+        snow sql -c service_principal --query $sf_cmd
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to create Git repository object"
+        }
+    } catch {
+        Write-Error "Failed to create Git repository object in Snowflake"
+        Remove-Item Env:PRIVATE_KEY_PASSPHRASE -ErrorAction SilentlyContinue
+        return $false
+    }
+    
+    Write-Success "Git repository object created in Snowflake"
+    
     # Setup schema in DEV environment only
     # Stage and Prod schemas will be created automatically on deployment via deploy_sql.py
     $database = "DEV_GR_AI_DB"

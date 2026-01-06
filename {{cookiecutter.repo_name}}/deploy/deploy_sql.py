@@ -8,7 +8,8 @@ schema = os.environ['DEPLOY_SCHEMA']
 repo_name = os.environ['REPO_NAME']
 branch = os.environ['BUILD_SOURCEBRANCHNAME']
 warehouse = os.environ['WAREHOUSE']
-workspace_owner = os.environ.get('WORKSPACE_OWNER', 'USER$')  # Snowflake username who owns the workspace
+utility_db = os.environ['UTILITY_DB']
+git_schema = os.environ['GIT_SCHEMA']
 # Container service env vars
 compute_pool = os.environ.get('COMPUTE_POOL', '')
 min_instances = os.environ.get('MIN_INSTANCES', '1')
@@ -23,32 +24,58 @@ deploy_lines = []
 ################################################################################
 ################ DATABASE, SCHEMA, NOTEBOOK PROJECT SETUP ######################
 ################################################################################
-workspace_url = f'snow://workspace/USER${workspace_owner}.PUBLIC.{repo_name}/versions/head/'
 
 use_lines = [
     f"USE DATABASE {database};\n",
     f"CREATE SCHEMA IF NOT EXISTS {schema};\n",
     f"GRANT ALL PRIVILEGES ON SCHEMA {database}.{schema} TO ROLE GR_AI_ENGINEER;\n",
-    f"USE SCHEMA {schema};\n\n",
-    f"CREATE OR REPLACE NOTEBOOK PROJECT {database}.{schema}.{repo_name}\n",
-    f"  FROM '{workspace_url}';\n"
+    f"USE SCHEMA {schema};\n\n"
 ]
 deploy_lines.extend(use_lines)
 
 ################################################################################
-####################### CONTAINERIZED STREAMLIT SERVICES #######################
+################ NOTEBOOKS #####################################################
 ################################################################################
-# Find all streamlit_app.py files with Dockerfiles under the "streamlit" folder
-# Only Dockerized apps are deployed via pipeline (native Streamlit apps are 
-# managed through Snowflake Workspaces)
+for root, dirs, files in os.walk('..'):
+    for file in files:
+        if file.endswith('.ipynb'):
+            file_without_ext = os.path.splitext(file)[0]
+            relative_path = os.path.relpath(root, '.')
+            full_repo_path = f'@"{utility_db}"."{git_schema}"."{repo_name}"/branches/{branch}/{relative_path}/'
+            deploy_lines.append(f"""
+CREATE OR REPLACE NOTEBOOK IDENTIFIER('"{database}"."{schema}"."{file_without_ext}"')
+FROM {full_repo_path}
+COMPUTE_POOL = '{compute_pool}'
+QUERY_WAREHOUSE = '{warehouse}'
+RUNTIME_NAME = 'SYSTEM$BASIC_RUNTIME'
+MAIN_FILE = '{file}'
+;
+""")
+            deploy_lines.append(f"""
+ALTER NOTEBOOK "{database}"."{schema}"."{file_without_ext}" ADD LIVE VERSION FROM LAST
+;        
+""")
+            deploy_lines.append(f"""
+ALTER NOTEBOOK "{database}"."{schema}"."{file_without_ext}" SET EXTERNAL_ACCESS_INTEGRATIONS = ('EXT_XS_INT_PYPI')
+;        
+""")
+
+################################################################################
+####################### (STREAMLIT) WEB APPS  ##################################
+################################################################################
+# Find all streamlit_app.py files under the "streamlit" folder (any depth)
+# - If Dockerfile exists in folder → deploy as Container Service
+# - If no Dockerfile → deploy as native Snowflake Streamlit app
 
 streamlit_root = os.path.abspath(os.path.join(base_dir, '..', 'apps'))
 if os.path.exists(streamlit_root):
     for dirpath, dirnames, filenames in os.walk(streamlit_root):
         for filename in filenames:
-            if filename == 'main.py':
+            if filename == 'main.py' or filename == 'streamlit_app.py':
                 app_path = os.path.join(dirpath, filename)
                 dockerfile_path = os.path.join(dirpath, 'Dockerfile')
+                relative_path = os.path.relpath(dirpath, '.')
+                full_repo_path = f'@"{utility_db}"."{git_schema}"."{repo_name}"/branches/{branch}/{relative_path}/'
                 
                 # Generate name based on folder location (all uppercase)
                 rel_to_streamlit = os.path.relpath(dirpath, streamlit_root)
@@ -58,7 +85,7 @@ if os.path.exists(streamlit_root):
                     subfolder_part = rel_to_streamlit.replace(os.sep, '_')
                     app_name = f'{repo_name}_{branch}_{subfolder_part}'.upper()
                 
-                # Only deploy if Dockerfile exists (containerized Streamlit apps)
+                # If Dockerfile exists → deploy as Container Service
                 if os.path.exists(dockerfile_path) and compute_pool and image_repo:
                     service_name = f'{app_name}_SERVICE'
                     # Image name includes subfolder to support multiple apps
@@ -89,43 +116,15 @@ $$
   MAX_INSTANCES={max_instances}
   QUERY_WAREHOUSE={warehouse};
 """)
-
-################################################################################
-################ EXECUTE NOTEBOOKS ON DEPLOY ###################################
-################ UNCOMMENT AND CONFIGURE AS NEEDED #############################
-################################################################################
-# List of notebooks to execute on deploy
-# Format: (notebook_file, compute_pool, runtime, external_access_integrations, arguments)
-# - notebook_file: path relative to workspace root (e.g., 'notebooks/NOTEBOOK1.ipynb')
-# - compute_pool: compute pool name for container runtime execution
-# - runtime: runtime version (e.g., 'V2.2-CPU-PY3.11')
-# - external_access_integrations: list of EAI names or empty list
-# - arguments: (optional) string of CLI-style arguments passed to the notebook
-#              Use f-strings for dynamic values: database, schema, repo_name, branch, warehouse
-#              e.g., f'--database="{database}" --schema="{schema}" --custom="value"'
-#              In the notebook, parse with argparse: args, _ = parser.parse_known_args(sys.argv[1:])
-
-execute_list = [
-    ("notebooks/NOTEBOOK1.ipynb", f"{compute_pool}", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"], f'--database="{database}" --schema="{schema}"'),
-    ("notebooks/NOTEBOOK2.ipynb", f"{compute_pool}", "V2.2-CPU-PY3.11", ["EXT_XS_INT_PYPI"], f'--database="{database}" --schema="{schema}"'),
-]
-
-for notebook_file, cp, runtime, eai_list, *optional in execute_list:
-    # Handle optional arguments parameter (5th element)
-    arguments = optional[0] if optional else ""
-    
-    # Build optional clauses
-    eai_values = ', '.join(f"'{e}'" for e in eai_list)
-    eai_str = f"  EXTERNAL_ACCESS_INTEGRATIONS = ({eai_values})\n" if eai_list else ""
-    args_str = f"  ARGUMENTS = '{arguments}'\n" if arguments else ""
-    
-    deploy_lines.append(f"""
-EXECUTE NOTEBOOK PROJECT {database}.{schema}.{repo_name}
-  MAIN_FILE = '{notebook_file}'
-  COMPUTE_POOL = '{cp}'
-  RUNTIME = '{runtime}'
-  QUERY_WAREHOUSE = '{warehouse}'
-{eai_str}{args_str};
+                
+                # No Dockerfile → deploy as native Streamlit app
+                elif os.path.getsize(app_path) > 0:
+                    deploy_lines.append(f"""
+CREATE OR REPLACE STREAMLIT IDENTIFIER('"{database}"."{schema}"."{app_name}"')
+FROM {full_repo_path}
+MAIN_FILE = '{filename}'
+QUERY_WAREHOUSE = '{warehouse}'
+;
 """)
 
 ################################################################################

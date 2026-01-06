@@ -17,7 +17,8 @@ variables:
   PROD_DB: 'PROD_GR_AI_DB' #                      
   SCHEMA: '<SCHEMA_NAME>' #                             <-- change these according to your schema name
   REPO_NAME: '<REPO_NAME>' #                            <-- change to your repo name
-  WORKSPACE_OWNER: '<USERNAME>' #                       <-- Snowflake username who owns the workspace, e.g., FENNES2
+  UTILITY_DB: 'EMEA_UTILITY_DB'
+  GIT_SCHEMA: 'GIT_REPOSITORIES'                     
   # Container-specific variables
   STAGE_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/stage_gr_ai_db/image_repo/stage_gr_ai_ir'
   PROD_IMAGE_REPO: 'mdtplc-awsuse1p1.registry.snowflakecomputing.com/prod_gr_ai_db/image_repo/prod_gr_ai_ir'
@@ -80,8 +81,15 @@ steps:
 
   # Test connection with Snowflake
   - script: |
-      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --warehouse $(WAREHOUSE)
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) connection test --connection $(SNOWFLAKE_CONNECTION_NAME) --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
     displayName: 'Test Snowflake CLI connection'
+    env:
+      PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
+
+  # Fetch repository in Snowflake
+  - script: |
+      snow --config-file $(SNOWFLAKE_CONFIG_PATH) git fetch "$(UTILITY_DB).$(GIT_SCHEMA).$(REPO_NAME)" --database $(UTILITY_DB) --schema $(GIT_SCHEMA) --warehouse $(WAREHOUSE)
+    displayName: 'Fetch repo in Snowflake'
     env:
       PRIVATE_KEY_PASSPHRASE: $(SNOWFLAKE_PRIVATE_KEY_PASSPHRASE)
 
@@ -147,12 +155,13 @@ steps:
       REPO_NAME: $(REPO_NAME)
       BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
       WAREHOUSE: $(WAREHOUSE)
+      UTILITY_DB: $(UTILITY_DB)
+      GIT_SCHEMA: $(GIT_SCHEMA)
       # Container service env vars
       COMPUTE_POOL: $(COMPUTE_POOL)
       MIN_INSTANCES: $(MIN_INSTANCES)
       MAX_INSTANCES: $(MAX_INSTANCES)
       IMAGE_REPO_NAME: $(IMAGE_REPO_NAME)
-      WORKSPACE_OWNER: $(WORKSPACE_OWNER)
 
   # Run SQL deployment (schema, notebook project, execute notebooks, services)
   - script: |
