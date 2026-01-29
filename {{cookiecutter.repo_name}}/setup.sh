@@ -286,6 +286,30 @@ main_azure_setup() {
         log_warning "Failed to set default branch to dev - you may need to set this manually"
     fi
     
+    # Set branch policy: require minimum 1 reviewer on main branch
+    log "Setting branch policy: minimum 1 reviewer required for PRs to 'main'..."
+    # Get the repository GUID (required by policy command)
+    local repo_id
+    repo_id=$("$AZ" repos show --repository "$REPO_NAME" --query "id" -o tsv 2>/dev/null)
+    if [[ -n "$repo_id" ]]; then
+        log "Repository ID: $repo_id"
+        if "$AZ" repos policy approver-count create \
+            --branch main \
+            --repository-id "$repo_id" \
+            --blocking true \
+            --enabled true \
+            --minimum-approver-count 1 \
+            --creator-vote-counts false \
+            --allow-downvotes false \
+            --reset-on-source-push false &>/dev/null; then
+            log_success "Branch policy set: PRs to 'main' require at least 1 reviewer"
+        else
+            log_warning "Failed to set branch policy - you may need to configure this manually"
+        fi
+    else
+        log_warning "Failed to get repository ID - cannot set branch policy"
+    fi
+    
     log_success "Azure DevOps setup completed successfully!"
     log_success "Repository '$REPO_NAME' created with dev (default), main, and stage branches"
     
