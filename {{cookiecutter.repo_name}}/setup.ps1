@@ -230,14 +230,14 @@ function Set-GitRepository {
         return $false
     }
     
-    # Rename branch to main
+    # Rename branch to dev (dev is the default branch)
     try {
-        git branch -M main
+        git branch -M dev
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to rename branch to main"
+            throw "Failed to rename branch to dev"
         }
     } catch {
-        Write-Error "Failed to rename branch to main: $_"
+        Write-Error "Failed to rename branch to dev: $_"
         return $false
     }
     
@@ -252,15 +252,15 @@ function Set-GitRepository {
         return $false
     }
     
-    # Push to main branch with retry mechanism
+    # Push to dev branch (default branch) with retry mechanism
     $maxRetries = 3
     $retryCount = 0
     
     while ($retryCount -lt $maxRetries) {
         try {
-            git push -u origin main
+            git push -u origin dev
             if ($LASTEXITCODE -eq 0) {
-                Write-Success "Successfully pushed to main branch"
+                Write-Success "Successfully pushed to dev branch"
                 break
             } else {
                 throw "Push failed"
@@ -273,7 +273,7 @@ function Set-GitRepository {
     }
     
     if ($retryCount -eq $maxRetries) {
-        Write-Error "Failed to push to main branch after $maxRetries attempts"
+        Write-Error "Failed to push to dev branch after $maxRetries attempts"
         return $false
     }
     
@@ -282,9 +282,9 @@ function Set-GitRepository {
 
 # Function to create additional branches
 function New-AdditionalBranches {
-    Write-Log "Creating additional branches (stage, dev)..."
+    Write-Log "Creating additional branches (main, stage)..."
     
-    $branches = @("stage", "dev")
+    $branches = @("main", "stage")
     
     foreach ($branch in $branches) {
         # Create and push branch if it doesn't exist
@@ -313,14 +313,14 @@ function New-AdditionalBranches {
         }
     }
     
-    # Return to main branch
+    # Return to dev branch (default branch)
     try {
-        git checkout main
+        git checkout dev
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to return to main branch"
+            throw "Failed to return to dev branch"
         }
     } catch {
-        Write-Error "Failed to return to main branch: $_"
+        Write-Error "Failed to return to dev branch: $_"
         return $false
     }
     
@@ -347,8 +347,21 @@ function Start-AzureSetup {
         return $false
     }
     
+    # Set dev as the default branch in Azure DevOps
+    Write-Log "Setting 'dev' as the default branch in Azure DevOps..."
+    try {
+        az repos update --repository $script:REPO_NAME --default-branch dev 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "Default branch set to 'dev' successfully"
+        } else {
+            Write-Warning "Failed to set default branch to dev - you may need to set this manually"
+        }
+    } catch {
+        Write-Warning "Failed to set default branch to dev - you may need to set this manually"
+    }
+    
     Write-Success "Azure DevOps setup completed successfully!"
-    Write-Success "Repository '$script:REPO_NAME' created with main, stage, and dev branches"
+    Write-Success "Repository '$script:REPO_NAME' created with dev (default), main, and stage branches"
     
     return $true
 }
@@ -692,7 +705,7 @@ try {
     Write-Success "Azure DevOps setup completed successfully!"
     Write-Success "Repository: $script:REPO_NAME"
     Write-Success "Remote URL: $script:REMOTE_URL"
-    Write-Success "Branches created: main, stage, dev"
+    Write-Success "Branches created: dev (default), main, stage"
 
     Write-Host ""
     Write-Log "Integration Status:"

@@ -187,9 +187,9 @@ setup_git_repository() {
         return 1
     fi
     
-    # Rename branch to main
-    if ! git branch -M main; then
-        log_error "Failed to rename branch to main"
+    # Rename branch to dev (dev is the default branch)
+    if ! git branch -M dev; then
+        log_error "Failed to rename branch to dev"
         return 1
     fi
     
@@ -199,13 +199,13 @@ setup_git_repository() {
         return 1
     fi
     
-    # Push to main branch with retry mechanism
+    # Push to dev branch (default branch) with retry mechanism
     local max_retries=3
     local retry_count=0
     
     while [[ $retry_count -lt $max_retries ]]; do
-        if git push -u origin main; then
-            log_success "Successfully pushed to main branch"
+        if git push -u origin dev; then
+            log_success "Successfully pushed to dev branch"
             break
         else
             retry_count=$((retry_count + 1))
@@ -215,7 +215,7 @@ setup_git_repository() {
     done
     
     if [[ $retry_count -eq $max_retries ]]; then
-        log_error "Failed to push to main branch after $max_retries attempts"
+        log_error "Failed to push to dev branch after $max_retries attempts"
         return 1
     fi
     
@@ -224,9 +224,9 @@ setup_git_repository() {
 
 # Function to create additional branches
 create_branches() {
-    log "Creating additional branches (stage, dev)..."
+    log "Creating additional branches (main, stage)..."
     
-    local branches=("stage" "dev")
+    local branches=("main" "stage")
     
     for branch in "${branches[@]}"; do
         # Create and push branch if it doesn't exist
@@ -249,9 +249,9 @@ create_branches() {
         fi
     done
     
-    # Return to main branch
-    if ! git checkout main; then
-        log_error "Failed to return to main branch"
+    # Return to dev branch (default branch)
+    if ! git checkout dev; then
+        log_error "Failed to return to dev branch"
         return 1
     fi
     
@@ -278,8 +278,16 @@ main_azure_setup() {
         return 1
     fi
     
+    # Set dev as the default branch in Azure DevOps
+    log "Setting 'dev' as the default branch in Azure DevOps..."
+    if "$AZ" repos update --repository "$REPO_NAME" --default-branch dev &>/dev/null; then
+        log_success "Default branch set to 'dev' successfully"
+    else
+        log_warning "Failed to set default branch to dev - you may need to set this manually"
+    fi
+    
     log_success "Azure DevOps setup completed successfully!"
-    log_success "Repository '$REPO_NAME' created with main, stage, and dev branches"
+    log_success "Repository '$REPO_NAME' created with dev (default), main, and stage branches"
     
     return 0
 }
@@ -570,7 +578,7 @@ log "=== Setup Summary ==="
 log_success "Azure DevOps setup completed successfully!"
 log_success "Repository: $REPO_NAME"
 log_success "Remote URL: $REMOTE_URL"
-log_success "Branches created: main, stage, dev"
+log_success "Branches created: dev (default), main, stage"
 
 echo
 log "Integration Status:"
