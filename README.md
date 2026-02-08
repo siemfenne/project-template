@@ -101,13 +101,14 @@ This will:
 - Prompt for a repository name (defaults to current directory name)
 - Initialize a local git repository with an initial commit
 - Create the GitHub repository and push the code
-- Create and push a `dev` branch alongside `main`
+- Create and push `dev` and `stage` branches alongside `main`
 
 ### 2. Start Developing
 
-After setup, your project is connected to GitHub with two branches:
+After setup, your project is connected to GitHub with three branches:
 
 - **`main`** — Production branch
+- **`stage`** — Staging branch
 - **`dev`** — Development branch
 - **`feature/*`** — Create feature branches off `dev` for new work
 
@@ -122,6 +123,7 @@ If you chose `include_dockerfile = "Yes"`, your project includes:
 ## Branching Strategy
 
 - **`main`** — Production-ready code
+- **`stage`** — Staging/testing environment
 - **`dev`** — Active development
 - **`feature/*`** — Feature branches created from `dev`
 

@@ -182,26 +182,29 @@ setup_git_repository() {
 
 # Function to create additional branches
 create_branches() {
-    log "Creating additional branch (dev)..."
+    log "Creating additional branches (dev, stage)..."
 
-    # Create and push dev branch if it doesn't exist
-    if ! git branch --list | grep -q "dev"; then
-        log "Creating and pushing 'dev' branch..."
+    local branches=("dev" "stage")
 
-        if ! git checkout -b dev; then
-            log_error "Failed to create 'dev' branch"
-            return 1
+    for branch in "${branches[@]}"; do
+        if ! git branch --list | grep -q "$branch"; then
+            log "Creating and pushing '$branch' branch..."
+
+            if ! git checkout -b "$branch"; then
+                log_error "Failed to create '$branch' branch"
+                return 1
+            fi
+
+            if ! git push -u origin "$branch"; then
+                log_error "Failed to push '$branch' branch"
+                return 1
+            fi
+
+            log_success "'$branch' branch created and pushed successfully"
+        else
+            log_warning "'$branch' branch already exists"
         fi
-
-        if ! git push -u origin dev; then
-            log_error "Failed to push 'dev' branch"
-            return 1
-        fi
-
-        log_success "'dev' branch created and pushed successfully"
-    else
-        log_warning "'dev' branch already exists"
-    fi
+    done
 
     # Return to main branch
     if ! git checkout main; then
@@ -233,7 +236,7 @@ main_github_setup() {
     fi
 
     log_success "GitHub setup completed successfully!"
-    log_success "Repository '$REPO_NAME' created with main (default) and dev branches"
+    log_success "Repository '$REPO_NAME' created with main (default), dev, and stage branches"
 
     return 0
 }
@@ -250,6 +253,6 @@ log "=== Setup Summary ==="
 log_success "GitHub repository created successfully!"
 log_success "Repository: $REPO_NAME"
 log_success "Remote URL: $REMOTE_URL"
-log_success "Branches created: main (default), dev"
+log_success "Branches created: main (default), dev, stage"
 echo
 log_success "Project setup completed! Your project is ready for development."
