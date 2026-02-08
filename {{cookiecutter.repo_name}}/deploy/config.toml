@@ -1,9 +1,0 @@
-default_connection_name = "myconnection"
-
-[connections.myconnection]
-account = "mdtplcprod"
-user = "SVC-SNF-GIT-GR-AI@MEDTRONIC.COM"
-region = "us-east-1"
-role = "GR_AI_ENGINEER"
-authenticator = "SNOWFLAKE_JWT"
-private_key_file = "SVC-SNF-GIT-GR-AI.p8"

@@ -1,16 +1,17 @@
-# Data Science Project Template
+# Project Template
 
-A standardized cookiecutter template for Data Science projects at Medtronic, designed to enforce best practices and provide a consistent project structure across teams.
+A cookiecutter template for Python projects with Docker containerization, Google Cloud hosting, and GitHub integration.
 
-## Quick Start 
+## Quick Start
 
 ### Prerequisites
-- Cookiecutter installed (`pip install cookiecutter==2.6.0`)
+- [Cookiecutter](https://cookiecutter.readthedocs.io/) installed (`pip install cookiecutter==2.6.0`)
+- [GitHub CLI](https://cli.github.com/) installed and authenticated (`gh auth login`)
 
 ### Generate a New Project
 
 ```bash
-cookiecutter https://dev.azure.com/MedtronicBI/DigIC%20GR%20AI/_git/project-template-2
+cookiecutter [https://github.com/siemfenne/project-template](https://github.com/siemfenne/project-template)
 ```
 
 You'll be prompted to answer several questions that customize your project:
@@ -19,68 +20,57 @@ You'll be prompted to answer several questions that customize your project:
 
 | Prompt | Description | Options |
 |--------|-------------|---------|
-| `project_name` | Human-readable project name | Free text (e.g., "Yoda - Recommended Opportunity") |
-| `repo_name` | Repository/folder name | Free text (e.g., "PXXX") |
-| `author_name` | Author or organization name | Free text (e.g., "Medtronic") |
+| `project_name` | Human-readable project name | Free text |
+| `repo_name` | Repository/folder name | Free text |
+| `author_name` | Author or organization name | Free text |
 | `description` | Brief project description | Free text |
-| `project_platform` | Target platform for deployment | `Snowflake` or `Databricks` |
-| `python_version` | Python version for the project | Free text (e.g., "3.9", "3.10") |
+| `project_management` | Platform for project management and CI/CD | `Github` or `Azure DevOps` |
+| `python_version` | Python version for the project | Free text (e.g., "3.11", "3.12") |
 | `environment_manager` | Python environment management tool | `virtualenv`, `conda`, `pipenv`, `poetry`, `uv`, `none` |
 | `dependency_file` | Dependency specification format | `requirements.txt`, `pyproject.toml`, `environment.yml`, `Pipfile` |
+| `include_dockerfile` | Include Docker and Google Cloud files | `Yes` or `No` |
 
 ## Project Structure
 
-The generated project follows data science best practices with clear separation of concerns:
+The generated project follows best practices with clear separation of concerns:
 
 ```
 repo_name/
+├── .github/                       # GitHub Actions workflows (if Github selected)
+│   └── workflows/
+│       └── deploy.yml             # CI/CD deployment workflow
 ├── docs/                          # Project documentation
 │   ├── docs/                      # MkDocs documentation source
 │   ├── mkdocs.yml                 # MkDocs configuration
 │   └── README.md                  # Project-specific README
 ├── models/                        # Trained models and serialized objects
-├── notebooks/                     # Jupyter notebooks
-│   ├── requirements/              # Dependency files for different runtimes
-│   └── shared/                    # Shared notebook utilities
+├── notebooks/                     # Jupyter notebooks and dependency files
 ├── references/                    # Data dictionaries, manuals, explanatory materials
 ├── reports/                       # Generated analysis reports
-├── .gitignore                    # Git ignore rules
-├── setup.ps1                     # Windows PowerShell setup script
-├── setup.sh                      # Unix/macOS setup script
-└── [platform-specific files]    # Files based on platform choice
+├── src/                           # Application source code
+│   ├── main.py                    # Main application entry point
+├── .gitignore                     # Git ignore rules
+├── setup.sh                       # Setup script to connect project to GitHub
+├── Dockerfile                     # Docker container definition (if included)
+├── .dockerignore                  # Docker build ignore rules (if included)
+├── .gcloudignore                  # Google Cloud deploy ignore rules (if included)
+└── azure-pipeline.yml             # Azure DevOps pipeline (if Azure DevOps selected)
 ```
 
-### Platform and OS-Specific Files
+### Conditional Files
 
-The template automatically configures your project based on the selected platform and operating system using **post-generation hooks**. Unwanted platform-specific and OS-specific files are automatically removed during project generation.
+The template uses **post-generation hooks** to automatically remove files that don't match your configuration:
 
-#### When `project_platform = "Snowflake"`:
-```
-├── deploy/                       # Snowflake deployment configuration
-│   ├── config.toml              # Snowflake connection config
-│   ├── deploy.sql               # SQL deployment scripts (generated by pipeline)
-│   └── deploy_sql.py            # Python script for SQL generation
-├── apps/                        # Streamlit/web apps directory
-│   ├── main.py                  # Main application entry point
-│   └── environment.yml          # App dependencies
-└── azure-pipeline-sf.yml        # Azure DevOps CI/CD pipeline for Snowflake
-```
-*Note: Databricks-specific files (`azure-pipeline-dbx.yml`, `databricks.yml`) are automatically removed.*
+#### When `project_management = "Github"`:
+- `azure-pipeline.yml` is removed
+- `.github/workflows/deploy.yml` is kept for GitHub Actions CI/CD
 
-#### When `project_platform = "Databricks"`:
-```
-├── databricks.yml               # Databricks project configuration for pipeline
-└── azure-pipeline-dbx.yml       # Azure DevOps CI/CD pipeline template for Databricks
-```
-*Note: Snowflake-specific files (`deploy/`, `apps/`, `azure-pipeline-sf.yml`) are automatically removed.*
+#### When `project_management = "Azure DevOps"`:
+- `.github/` directory is removed
+- `azure-pipeline.yml` is kept for Azure Pipelines CI/CD
 
-#### Setup Scripts
-Both Windows and macOS/Linux scripts are included in every generated project:
-```
-├── setup.ps1                    # Windows PowerShell setup script
-├── setup.sh                     # Unix/macOS setup script
-
-```
+#### When `include_dockerfile = "No"`:
+- `Dockerfile`, `.dockerignore`, and `.gcloudignore` are removed
 
 ### Dependency Management Files
 
@@ -95,101 +85,51 @@ Based on your `dependency_file` choice, one of the following will be created in 
 
 After generating your project:
 
-> **📝 Note**: The template uses post-generation hooks to automatically clean up platform-specific files. You'll see confirmation messages during generation (e.g., "Removed azure-pipeline-sf.yml", "Project template configured for Databricks").
+> **Note**: The template uses post-generation hooks to automatically clean up files based on your choices. You'll see confirmation messages during generation.
 
-### 1. Setup Scripts (Recommended)
+### 1. Run the Setup Script
 
-Navigate to your project directory and run the setup script for your operating system:
+Navigate to your generated project directory and run:
 
-**Windows:**
-```powershell
-.\setup.ps1
-```
-
-**macOS/Linux:**
 ```bash
 ./setup.sh
 ```
 
 This will:
-- Configure Azure DevOps CLI with organization and project defaults
-- Prompt for new repository name
-- Create new Azure DevOps repository
-- Initialize local git repository with initial commit
-- Create and push `main`, `stage`, and `dev` branches
-- Set up remote origin
-- Optionally set up Snowflake integration:
-  - Create Git repository object in Snowflake (linked to Azure DevOps)
-  - Create project schema in `DEV_GR_AI_DB`
-  - Grant appropriate permissions to `GR_AI_ENGINEER` role
-- Optionally link repository in Databricks:
-  - Create repository links in DEV environment
-  - Set up workspace paths under user directory
+- Validate that the GitHub CLI (`gh`) is installed and authenticated
+- Prompt whether the repository should be **private** or **public**
+- Prompt for a repository name (defaults to current directory name)
+- Initialize a local git repository with an initial commit
+- Create the GitHub repository and push the code
+- Create and push a `dev` branch alongside `main`
 
-**Important**: When you choose to set up Snowflake integration, you will be prompted to provide a private key passphrase. Here you have to insert the passphrase of the Service Principal. Please ask Ronald to pass it to you.
+### 2. Start Developing
 
-### 2. Working with Snowflake Workspaces
+After setup, your project is connected to GitHub with two branches:
 
-With Snowflake Workspaces, notebooks and Streamlit apps are now managed directly within Snowflake:
+- **`main`** — Production branch
+- **`dev`** — Development branch
+- **`feature/*`** — Create feature branches off `dev` for new work
 
-- **Notebooks**: Create and edit Jupyter notebooks directly in Snowflake Workspaces. They persist across git branches and don't require CI/CD deployment.
-- **Native Streamlit Apps**: Create Streamlit apps directly in Snowflake Workspaces without needing containerization.
-- **Containerized Streamlit Apps**: For apps requiring custom dependencies via Docker, use the CI/CD pipeline (see below).
+### 3. Docker & Google Cloud (if included)
+
+If you chose `include_dockerfile = "Yes"`, your project includes:
+
+- **`Dockerfile`** — Define your container image for the application in `src/`
+- **`.dockerignore`** — Exclude unnecessary files from Docker builds
+- **`.gcloudignore`** — Exclude unnecessary files from Google Cloud deployments
 
 ## Branching Strategy
 
-This template implements a Git branching strategy aligned with the team's deployment pipeline:
-
-- **`main`** - Production branch → `PROD_GR_AI_DB`
-- **`stage`** - Staging branch → `STAGE_GR_AI_DB`  
-- **`dev`** - Development branch → `DEV_GR_AI_DB`
-- **`feature/*`** - Feature branches → `DEV_GR_AI_DB`
-
-## CI/CD Pipeline
-
-The included pipeline file (platform-specific) provides:
-
-- **Triggers**: Pushes to `main` and `stage` branches
-- **Environment-specific database mapping** via Azure DevOps variables
-- **Platform-specific authentication**:
-  - **Snowflake**: JWT authentication via private key
-  - **Databricks**: Token-based authentication
-- **Git repository sync** (fetches latest from Azure DevOps to Snowflake)
-- **Connection testing** and validation
-
-### Snowflake Deployments
-
-The Snowflake CI/CD pipeline automatically deploys:
-
-#### Notebooks
-All `.ipynb` files in the repository are deployed as Snowflake Notebooks:
-- Creates notebook objects from the Git repository
-- Adds live versions automatically
-- Configures external access integrations (PyPI)
-
-#### Streamlit Apps
-Apps in the `apps/` folder are deployed based on their structure:
-
-**Native Streamlit Apps** (no Dockerfile):
-- Deployed directly as Snowflake Streamlit apps
-- Entry point: `main.py` or `streamlit_app.py`
-
-**Containerized Apps** (with Dockerfile):
-- Built as Docker images and pushed to Snowflake's image registry
-- Deployed as Snowpark Container Services
-- Useful for apps requiring custom dependencies
-
-To deploy a containerized app:
-1. Create a subfolder under `apps/` (e.g., `apps/myapp/`)
-2. Add your `main.py` or `streamlit_app.py`
-3. Add a `Dockerfile`
-4. (Optional) Add an `environment.yml` for Conda dependencies
+- **`main`** — Production-ready code
+- **`dev`** — Active development
+- **`feature/*`** — Feature branches created from `dev`
 
 ## Best Practices
 
 ### Code Organization
-- Use notebooks for exploration, analysis, and reporting
-- Maintain shared utilities in `notebooks/shared/`
+- Keep application code in `src/`
+- Use notebooks for exploration, analysis, and prototyping
 - Store trained models in `models/`
 
 ### Documentation

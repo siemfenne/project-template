@@ -3,33 +3,24 @@ import os
 import shutil
 import stat
 
-# get the project platform from cookiecutter context
-project_platform = '{{ cookiecutter.project_platform }}'
-project_development = '{{ cookiecutter.development }}'
+# get cookiecutter context
+project_management = '{{ cookiecutter.project_management }}'
+include_dockerfile = '{{ cookiecutter.include_dockerfile }}'
 
-# define files to remove based on platform choice
-if project_platform == 'Snowflake':
-    # remove Databricks-specific files
-    files_to_remove = [
-        'azure-pipeline-dbx.yml',
-        'databricks.yml'
-    ]
-    dirs_to_remove = [
-        'notebooks/requirements'
-    ]
-elif project_platform == 'Databricks':
-    # remove Snowflake-specific files and directories
-    files_to_remove = [
-        'azure-pipeline-sf.yml',
-    ]
-    dirs_to_remove = [
-        'deploy',
-    ]
-    if project_development == 'Local':
-        files_to_remove.append('notebooks/requirements.txt')
-        files_to_remove.append('notebooks/pyproject.toml')
-        files_to_remove.append('notebooks/environment.yml')
-        files_to_remove.append('notebooks/Pipfile')
+files_to_remove = []
+dirs_to_remove = []
+
+# remove files based on project management choice
+if project_management == 'Github':
+    files_to_remove.append('azure-pipeline.yml')
+elif project_management == 'Azure DevOps':
+    dirs_to_remove.append('.github')
+
+# remove Docker/GCloud files if Dockerfile is not included
+if include_dockerfile == 'No':
+    files_to_remove.append('Dockerfile')
+    files_to_remove.append('.dockerignore')
+    files_to_remove.append('.gcloudignore')
 
 # remove unwanted files
 for file_name in files_to_remove:
@@ -44,12 +35,12 @@ for dir_name in dirs_to_remove:
         print(f"Removed directory {dir_name}")
 
 # Make shell scripts executable (for macOS/Linux users)
-shell_scripts = ['setup.sh', 'create.sh']
+shell_scripts = ['setup.sh']
 for shell_script in shell_scripts:
     if os.path.exists(shell_script):
         current_permissions = os.stat(shell_script).st_mode
         os.chmod(shell_script, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         print(f"Made {shell_script} executable")
 
-print(f"Project template configured for {project_platform}")
-print(f"You can continue connecting the project to Azure DevOps and Snowflake/Databricks using the setup scripts (setup.ps1 for Windows, setup.sh for macOS/Linux)")
+print(f"Project template configured with {project_management} for project management")
+print(f"Run ./setup.sh to connect the project to {project_management}")
